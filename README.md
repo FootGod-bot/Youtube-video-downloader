@@ -1,10 +1,10 @@
 🎬 YouTube Link Saver – Setup Guide
 This tool lets you right-click on a YouTube video and send the link to your computer, where it gets saved to a file. Another tool (like yt-dlp) can then auto-download the video.
 
-🧰 What You’ll Need to Install
+🧰 What You’ll Need to Install.
 You’ll need to install a few tools. Each step below tells you what to do and gives you a download link.
 
-✅ Step 1: Install Python
+✅ Step 1: Install Python.
 Go to https://download.python.com
 
 Download the latest version.
@@ -19,7 +19,7 @@ Type: python --version
 
 It should show something like Python 3.12.1
 
-✅ Step 2: Install Flask
+✅ Step 2: Install Flask.
 This lets your computer run a small local web server.
 
 Open the Command Prompt
@@ -27,7 +27,7 @@ Open the Command Prompt
 Type this and press Enter:
 
 pip install flask flask-cors
-✅ Step 3: Install yt-dlp
+✅ Step 3: Install yt-dlp.
 This tool downloads videos.
 
 Go to https://download.yt-dlp.com
@@ -38,7 +38,7 @@ Put it somewhere easy, like a C:\Tools\yt-dlp\ folder
 
 Add that folder to your System PATH (Google this if unsure)
 
-✅ Step 4: Install FFmpeg
+✅ Step 4: Install FFmpeg.
 yt-dlp needs this to process video and audio.
 
 Go to https://download.ffmpeg.com
@@ -49,14 +49,11 @@ Extract it to something like C:\Tools\ffmpeg\
 
 Add C:\Tools\ffmpeg\bin to your System PATH
 
-✅ Step 5: Set Up the Python Server
+✅ Step 5: Set Up the Python Server.
 Open Notepad
 
 Copy and paste this code:
 
-python
-Copy
-Edit
 from flask import Flask, request
 from flask_cors import CORS
 import os
@@ -85,7 +82,7 @@ bash
 Copy
 Edit
 python ytlinkserver.py
-✅ Step 6: Set Up the Browser Extension
+✅ Step 6: Set Up the Browser Extension.
 Create a folder on your desktop named YouTubeLinkSaver
 
 Inside it, create two files:
