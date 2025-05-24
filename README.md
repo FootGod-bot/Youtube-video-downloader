@@ -26,9 +26,6 @@ Open the Command Prompt
 
 Type this and press Enter:
 
-bash
-Copy
-Edit
 pip install flask flask-cors
 ✅ Step 3: Install yt-dlp
 This tool downloads videos.
