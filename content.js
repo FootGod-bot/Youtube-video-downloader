@@ -1,5 +1,5 @@
 (function () {
-  const buttonText = "Download";
+  const buttonText = "Download This Video";
   const gapSize = 10; // change this number to adjust left/right margin in pixels
 
   function addButton() {
