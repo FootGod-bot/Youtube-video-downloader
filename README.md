@@ -29,9 +29,6 @@ After extraction, there will be a folder named something like ffmpeg-2025-05-21-
 
 The full path to the FFmpeg bin folder will look like:
 
-makefile
-Copy
-Edit
 C:\ffmpeg\ffmpeg-2025-05-21-git-4099d53759-full_build\bin
 You can extract using tools like 7-Zip or WinRAR.
 
@@ -39,9 +36,6 @@ Tell the updater script you finished extracting FFmpeg
 
 The updater will prompt:
 
-bash
-Copy
-Edit
 Have you extracted FFmpeg archive to C:\ffmpeg? (y/n):
 Type y and press Enter once extraction is complete.
 
