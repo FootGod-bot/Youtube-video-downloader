@@ -125,15 +125,19 @@ else:
     print("Failed to download FFmpeg archive.")
 
 # 5. Rename script to update.py and delete old
-script_path = Path(__file__)
-if script_path.name.lower() != "update.py":
-    new_path = script_path.with_name("update.py")
-    shutil.copy(script_path, new_path)
-    print("Copied script to update.py")
-    try:
-        script_path.unlink()
-        print("Deleted original install script.")
-    except Exception as e:
-        print(f"Could not delete original script: {e}")
+try:
+    from urllib.request import urlretrieve
+
+    updater_url = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/updater.py"
+    updater_path = Path.home() / "updater.py"
+
+    print(f"Downloading updater.py to: {updater_path}")
+    urlretrieve(updater_url, updater_path)
+    print("Downloaded updater.py successfully.")
+
+except Exception as e:
+    print("Failed to download updater.py.")
+    print(f"Error: {e}")
+
 
 print("Update complete!")
