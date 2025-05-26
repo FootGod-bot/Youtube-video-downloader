@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from urllib.request import urlretrieve
 
-print("== Yt-dlp Downloader Updater ==")
+print("== Yt-dlp Installer ==")
 
 def download_file(url, dest):
     try:
