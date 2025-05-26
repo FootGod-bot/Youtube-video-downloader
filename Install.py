@@ -4,6 +4,8 @@ import subprocess
 import time
 from pathlib import Path
 from urllib.request import urlretrieve
+import shutil
+import winreg
 
 print("== Yt-dlp Downloader Updater ==")
 
@@ -21,7 +23,6 @@ def run_installer(installer_path):
     subprocess.run([str(installer_path)], check=False)
     print("AutoHotkey installer finished or closed.")
 
-    # Try deleting installer with retries
     for attempt in range(5):
         try:
             installer_path.unlink()
@@ -34,7 +35,6 @@ def run_installer(installer_path):
         print("Skipping delete of AutoHotkey installer after multiple attempts.")
 
 def add_to_user_path(new_path):
-    import winreg
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment', 0, winreg.KEY_READ) as key:
             existing_path, _ = winreg.QueryValueEx(key, "PATH")
@@ -53,7 +53,13 @@ def add_to_user_path(new_path):
     else:
         print(f"{new_path} already in user PATH.")
 
-# Main folders
+def is_ahk_installed():
+    try:
+        subprocess.run(["AutoHotkey.exe", "/ErrorStdOut"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return True
+    except FileNotFoundError:
+        return False
+
 project_folder = Path(r"C:\Users\aiden\Yt-dlp downloader")
 project_folder.mkdir(parents=True, exist_ok=True)
 
@@ -70,48 +76,61 @@ extension_files = [
     "content.js", "icon128.png", "icon48.png", "manifest.json"
 ]
 
-# 1. Download and run AutoHotkey installer
+# 1. AutoHotkey check and install
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
-if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
-    run_installer(ahk_installer)
+if not is_ahk_installed():
+    if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
+        run_installer(ahk_installer)
+    else:
+        print("Failed to download AutoHotkey installer. Please install manually.")
 else:
-    print("Failed to download AutoHotkey installer. Please install manually.")
+    print("AutoHotkey is already installed.")
 
-# 2. Download main files
+# 2. Main files
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
 
-# 3. Download extension files
+# 3. Extension files
 for file in extension_files:
     download_file(f"{repo_base}/{file}", ext_dir / file)
 
-# 4. Download yt-dlp.exe to C:\yt-dlp and add to PATH
+# 4. yt-dlp install
 yt_dlp_dir = Path("C:/yt-dlp")
 yt_dlp_dir.mkdir(exist_ok=True)
 yt_dlp_path = yt_dlp_dir / "yt-dlp.exe"
-if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
-    add_to_user_path(str(yt_dlp_dir))
+if not yt_dlp_path.exists():
+    if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
+        add_to_user_path(str(yt_dlp_dir))
+else:
+    print("yt-dlp already exists.")
 
-# 5. Download FFmpeg archive to C:\ffmpeg
+# 5. FFmpeg install
 ffmpeg_dir = Path("C:/ffmpeg")
 ffmpeg_dir.mkdir(exist_ok=True)
 ffmpeg_7z = ffmpeg_dir / "ffmpeg-git-full.7z"
-if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_7z):
-    print(f"FFmpeg archive downloaded to: {ffmpeg_7z}")
-    print("Please extract it manually using 7-Zip or another tool.")
-    yn = input("Have you extracted it to the default folder inside C:\\ffmpeg? (y/n): ").lower()
+bin_added = False
+
+if not any((subdir / "bin").exists() for subdir in ffmpeg_dir.iterdir() if subdir.is_dir()):
+    if not ffmpeg_7z.exists():
+        if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_7z):
+            print(f"FFmpeg archive downloaded to: {ffmpeg_7z}")
+    print("Please extract the 7z archive manually into C:\\ffmpeg")
+    yn = input("Have you extracted it? (y/n): ").lower()
     if yn == "y":
-        # Look for folder inside C:\ffmpeg with bin folder
-        found = False
         for subfolder in ffmpeg_dir.iterdir():
             bin_path = subfolder / "bin"
             if bin_path.exists():
                 add_to_user_path(str(bin_path))
-                found = True
+                bin_added = True
                 break
-        if not found:
-            print("FFmpeg bin folder not found. Make sure you extracted it correctly.")
+        if not bin_added:
+            print("FFmpeg bin folder not found.")
 else:
-    print("Failed to download FFmpeg archive.")
+    print("FFmpeg appears to be already extracted.")
+    for subfolder in ffmpeg_dir.iterdir():
+        bin_path = subfolder / "bin"
+        if bin_path.exists():
+            add_to_user_path(str(bin_path))
+            break
 
-print("Update complete! Reload extension or restart related apps if needed.")
+print("Update complete! Reload extension or restart apps if needed.")
