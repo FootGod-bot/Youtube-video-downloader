@@ -20,7 +20,6 @@ repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloa
 files = ["Download.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
 ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
-ffmpeg_bin_path = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
 
 def download_file(url, dest):
     try:
@@ -61,36 +60,33 @@ def add_to_user_path(new_path):
 
 def ahk_installed():
     for path in os.environ["PATH"].split(";"):
-        try:
-            if Path(path.strip('"')) / "AutoHotkey.exe" in Path(path).glob("AutoHotkey.exe"):
-                return True
-        except:
-            continue
+        if Path(path.strip('"')) / "AutoHotkey.exe" in Path(path).glob("AutoHotkey.exe"):
+            return True
     return False
 
-# Create folders and ytlink.txt
+# Make directories and ytlink.txt
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
 
-# 1. AHK install
+# 1. AHK
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_installed():
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
         run_installer(ahk_installer)
     else:
-        print("Failed to download AutoHotkey installer.")
+        print("Failed to download AutoHotkey installer. Please install manually.")
 else:
     print("AutoHotkey already installed.")
 
-# 2. Script and extension files
+# 2. Download all script files
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
 for file in extension_files:
     download_file(f"{repo_base}/{file}", ext_dir / file)
 
-# 3. yt-dlp install/update
+# 3. yt-dlp
 if yt_dlp_dir.exists():
     confirm = input("yt-dlp folder exists. Update it? (y/n): ").strip().lower()
     if confirm == "y":
@@ -98,15 +94,15 @@ if yt_dlp_dir.exists():
         print("yt-dlp folder removed.")
 yt_dlp_dir.mkdir(exist_ok=True)
 yt_dlp_path = yt_dlp_dir / "yt-dlp.exe"
-if not yt_dlp_path.exists():
-    if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
-        add_to_user_path(str(yt_dlp_dir))
+if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
+    add_to_user_path(str(yt_dlp_dir))
 
-# 4. ffmpeg install/update
+# 4. FFmpeg
 if ffmpeg_dir.exists():
     confirm = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
     if confirm == "y":
         shutil.rmtree(ffmpeg_dir)
+        ffmpeg_dir.mkdir()
         print("FFmpeg folder removed.")
 ffmpeg_dir.mkdir(exist_ok=True)
 
@@ -115,10 +111,11 @@ if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg
     subprocess.run(f'explorer "{ffmpeg_dir}"')
     yn = input("Have you extracted it? (y/n): ").strip().lower()
     if yn == "y":
-        if ffmpeg_bin_path.exists():
-            add_to_user_path(str(ffmpeg_bin_path))
+        target_bin = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
+        if target_bin.exists():
+            add_to_user_path(str(target_bin))
         else:
-            print("Could not find expected bin folder at:", ffmpeg_bin_path)
+            print("Could not find expected bin folder at:", target_bin)
     try:
         ffmpeg_zip.unlink()
         print("Deleted FFmpeg archive.")
@@ -127,28 +124,28 @@ if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg
 else:
     print("Failed to download FFmpeg archive.")
 
-# 5. Download updater.py to user folder
-try:
-    updater_url = f"{repo_base}/updater.py"
-    updater_path = user_profile / "updater.py"
-    print(f"Downloading updater.py to: {updater_path}")
-    urlretrieve(updater_url, updater_path)
-    print("Downloaded updater.py successfully.")
-except Exception as e:
-    print("Failed to download updater.py.")
-    print(f"Error: {e}")
-
-# 6. Rename current script to update.py and delete original
-try:
-    script_path = Path(__file__)
-    if script_path.name.lower() != "update.py":
-        new_path = script_path.with_name("update.py")
-        shutil.copy(script_path, new_path)
-        print("Copied script to update.py")
-        time.sleep(0.5)
+# 5. Rename script to update.py and delete old
+script_path = Path(__file__)
+if script_path.name.lower() != "update.py":
+    new_path = script_path.with_name("update.py")
+    shutil.copy(script_path, new_path)
+    print("Copied script to update.py")
+    try:
         script_path.unlink()
         print("Deleted original install script.")
+    except Exception as e:
+        print(f"Could not delete original script: {e}")
+
+# 6. Download updater.py from GitHub (correct case)
+try:
+    updater_url = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/Updater.py"
+    updater_path = user_profile / "updater.py"
+
+    print(f"Downloading Updater.py to: {updater_path}")
+    urlretrieve(updater_url, updater_path)
+    print("Downloaded Updater.py successfully.")
 except Exception as e:
-    print(f"Could not rename/delete script: {e}")
+    print("Failed to download Updater.py.")
+    print(f"Error: {e}")
 
 print("Update complete!")
