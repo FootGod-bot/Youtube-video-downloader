@@ -1,5 +1,5 @@
 (function () {
-  const buttonText = "Hacked";
+  const buttonText = "Download";
   const gapSize = 10; // change this number to adjust left/right margin in pixels
 
   function addButton() {
