@@ -41,15 +41,15 @@ except PermissionError:
 
 # Download other files
 files = {
-    "Downloader.ahk": "https://raw.githubusercontent.com/Youtube-video-downloader/Downloader.ahk",
-    "ytlinkserver.py": "https://raw.githubusercontent.com/Youtube-video-downloader/ytlinkserver.py",
-    "README.md": "https://raw.githubusercontent.com/Youtube-video-downloader/README.md",
-    "content.js": "https://raw.githubusercontent.com/Youtube-video-downloader/content.js",
-    "icon128.png": "https://raw.githubusercontent.com/Youtube-video-downloader/icon128.png",
-    "icon48.png": "https://raw.githubusercontent.com/Youtube-video-downloader/icon48.png",
-    "manifest.json": "https://raw.githubusercontent.com/Youtube-video-downloader/manifest.json",
-    "yt-dlp.exe": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe",
-    "updater.py": "https://raw.githubusercontent.com/Youtube-video-downloader/updater.py",
+    "Downloader.ahk": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/Downloader.ahk",
+    "ytlinkserver.py": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/ytlinkserver.py",
+    "README.md": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/README.md",
+    "content.js": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/content.js",
+    "icon128.png": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/icon128.png",
+    "icon48.png": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/icon48.png",
+    "manifest.json": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/manifest.json",
+    "yt-dlp.exe": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/yt-dlp.exe",
+    "updater.py": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/updater.py",
 }
 
 for fname, furl in files.items():
