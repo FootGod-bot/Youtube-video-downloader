@@ -49,7 +49,7 @@ files = {
     "icon48.png": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/icon48.png",
     "manifest.json": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/manifest.json",
     "yt-dlp.exe": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe",
-    "updater.py": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/updater.py",
+    "updater.py": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/refs/heads/main/Updater.py",
 }
 
 for fname, furl in files.items():
