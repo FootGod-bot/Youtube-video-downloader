@@ -18,7 +18,8 @@ ext_dir = project_folder / "extension_files"
 yt_dlp_dir = Path("C:/yt-dlp")
 ffmpeg_dir = Path("C:/ffmpeg")
 ytlink_path = user_profile / "OneDrive" / "Documentos" / "ytlink.txt"
-startup_folder = Path(os.getenv('APPDATA')) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup'
+startup_dir = Path(os.getenv("APPDATA")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+rbtray_dir = project_folder / "RBTray"
 repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main"
 
 files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
@@ -68,24 +69,34 @@ def ahk_installed():
             return True
     return False
 
-def create_shortcut(target, lnk_path, args="", working_dir=None):
+def create_shortcut(target, shortcut_name):
+    lnk_path = startup_dir / f"{shortcut_name}.lnk"
+    if lnk_path.exists():
+        try:
+            lnk_path.unlink()
+            print(f"Removed existing shortcut: {shortcut_name}.lnk")
+        except Exception as e:
+            print(f"Failed to remove old shortcut: {e}")
     try:
         pythoncom.CoInitialize()
         shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortcut(str(lnk_path))
+        shortcut = shell.CreateShortCut(str(lnk_path))
         shortcut.TargetPath = str(target)
-        shortcut.Arguments = args
-        shortcut.WorkingDirectory = str(working_dir or target.parent)
-        shortcut.Save()
-        print(f"Shortcut created: {lnk_path.name}")
+        shortcut.WorkingDirectory = str(target.parent)
+        if shortcut_name == "Server":
+            shortcut.Arguments = f'/c start python "{target}"'
+            shortcut.TargetPath = "cmd.exe"
+        shortcut.save()
+        print(f"Shortcut created: {shortcut_name}.lnk")
     except Exception as e:
-        print(f"Failed to create shortcut for {target}: {e}")
+        print(f"Failed to create shortcut: {e}")
 
-# Setup folders and file
+# Setup folders
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
+rbtray_dir.mkdir(parents=True, exist_ok=True)
 
 # 1. AHK
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
@@ -150,34 +161,15 @@ if not skip_ffmpeg:
         print("Failed to download FFmpeg archive.")
 
 # 5. Download RBTray
-rbtray_dir = project_folder / "RBTray"
-rbtray_dir.mkdir(parents=True, exist_ok=True)
-
 rbtray_files = {
     "RBTray.exe": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBTray.exe",
     "RBHook.dll": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBHook.dll"
 }
-
 for filename, url in rbtray_files.items():
     dest_path = rbtray_dir / filename
     download_file(url, dest_path)
 
-# 6. Create .lnk files in Startup folder
-create_shortcut(rbtray_dir / "RBTray.exe", startup_folder / "RBTray.lnk")
-create_shortcut(Path("C:/Windows/System32/cmd.exe"), startup_folder / "Start ytlinkserver.lnk",
-                args=f'/k python "{project_folder / "ytlinkserver.py"}"')
-create_shortcut(project_folder / "Downloader.ahk", startup_folder / "Download AHK.lnk")
-
-# 9. Run RBTray, ytlinkserver.py in new window, and Downloader.ahk like it's double-clicked
-try:
-    subprocess.Popen([str(rbtray_dir / "RBTray.exe")])
-    subprocess.Popen(["cmd", "/c", "start", "python", str(project_folder / "ytlinkserver.py")])
-    subprocess.Popen([str(project_folder / "Downloader.ahk")], shell=True)
-    print("Launched RBTray, ytlinkserver, and Downloader.ahk")
-except Exception as e:
-    print(f"Failed to launch startup apps: {e}")
-
-# 7. Download updater.py
+# 6. Download updater.py
 try:
     updater_url = f"{repo_base}/Updater.py"
     updater_path = user_profile / "updater.py"
@@ -186,9 +178,14 @@ try:
 except Exception as e:
     print(f"Failed to download updater.py: {e}")
 
+# 7. Add shortcuts to startup
+create_shortcut(rbtray_dir / "RBTray.exe", "RBTray")
+create_shortcut(project_folder / "ytlinkserver.py", "Server")
+create_shortcut(project_folder / "Downloader.ahk", "Download AHK")
+
 # 8. Delete self if named install.py
 script_path = Path(__file__)
-if script_path.name.lower() == "updater.py":
+if script_path.name.lower() == "install.py":
     try:
         os.remove(script_path)
         print("Deleted install.py")
