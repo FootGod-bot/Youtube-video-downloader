@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from urllib.request import urlretrieve
 import winreg
+import sys
 
 print("== Yt-dlp Installer ==")
 
@@ -64,13 +65,13 @@ def ahk_installed():
             return True
     return False
 
-# Setup folders
+# Setup folders and file
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
 
-# 1. AutoHotkey
+# 1. AHK
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_installed():
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
@@ -80,42 +81,40 @@ if not ahk_installed():
 else:
     print("AutoHotkey already installed.")
 
-# 2. Download script and extension files
+# 2. Download scripts
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
 for file in extension_files:
     download_file(f"{repo_base}/{file}", ext_dir / file)
 
 # 3. yt-dlp
+skip_yt_dlp = False
 if yt_dlp_dir.exists():
     confirm = input("yt-dlp folder exists. Update it? (y/n): ").strip().lower()
     if confirm == "y":
         shutil.rmtree(yt_dlp_dir)
-        yt_dlp_dir.mkdir()
-        print("yt-dlp folder reset.")
+        print("yt-dlp folder removed.")
     else:
-        print("Skipped yt-dlp update.")
-else:
-    yt_dlp_dir.mkdir()
+        skip_yt_dlp = True
 
-yt_dlp_path = yt_dlp_dir / "yt-dlp.exe"
-if not yt_dlp_path.exists():
+if not skip_yt_dlp:
+    yt_dlp_dir.mkdir(exist_ok=True)
+    yt_dlp_path = yt_dlp_dir / "yt-dlp.exe"
     if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
         add_to_user_path(str(yt_dlp_dir))
 
 # 4. FFmpeg
+skip_ffmpeg = False
 if ffmpeg_dir.exists():
     confirm = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
     if confirm == "y":
         shutil.rmtree(ffmpeg_dir)
-        ffmpeg_dir.mkdir()
-        print("FFmpeg folder reset.")
+        print("FFmpeg folder removed.")
     else:
-        print("Skipped FFmpeg update.")
-else:
-    ffmpeg_dir.mkdir()
+        skip_ffmpeg = True
 
-if not ffmpeg_zip.exists():
+if not skip_ffmpeg:
+    ffmpeg_dir.mkdir(exist_ok=True)
     if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_zip):
         print("Please extract ffmpeg-git-full.7z to C:/ffmpeg")
         subprocess.run(f'explorer "{ffmpeg_dir}"')
@@ -131,27 +130,25 @@ if not ffmpeg_zip.exists():
             print("Deleted FFmpeg archive.")
         except Exception as e:
             print(f"Couldn't delete FFmpeg archive: {e}")
-else:
-    print("ffmpeg-git-full.7z already exists, skipping download.")
+    else:
+        print("Failed to download FFmpeg archive.")
 
-# 5. Download updater.py and cleanup
+# 5. Download updater.py
 try:
     updater_url = f"{repo_base}/Updater.py"
-    updater_path = Path.home() / "updater.py"
-    print(f"Downloading updater.py to: {updater_path}")
+    updater_path = user_profile / "updater.py"
     urlretrieve(updater_url, updater_path)
-    print("Downloaded updater.py successfully.")
+    print(f"Downloaded updater.py to: {updater_path}")
 except Exception as e:
-    print("Failed to download updater.py.")
-    print(f"Error: {e}")
+    print(f"Failed to download updater.py: {e}")
 
-# 6. Self-delete
-try:
-    this_script = Path(__file__)
-    if this_script.exists():
-        os.remove(this_script)
-        print(f"Deleted {this_script.name}")
-except Exception as e:
-    print(f"Could not delete script: {e}")
+# 6. Delete self if named install.py
+script_path = Path(__file__)
+if script_path.name.lower() == "install.py":
+    try:
+        os.remove(script_path)
+        print("Deleted install.py")
+    except Exception as e:
+        print(f"Could not delete install.py: {e}")
 
-print("Update complete.")
+print("Update complete!")
