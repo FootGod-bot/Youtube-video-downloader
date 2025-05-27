@@ -46,9 +46,9 @@ def find_autohotkey_exe():
 
     return None
 
-# Download AutoHotkey installer and run it
-ahk_installer = project_folder / "AutoHotkey_Installer.exe"
-download("https://www.autohotkey.com/download/AutoHotkey_Installer.exe", ahk_installer)
+# Download AutoHotkey v2 installer and run it
+ahk_installer = project_folder / "ahk-v2.exe"
+download("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer)
 print("Running AutoHotkey installer, please complete installation...")
 subprocess.run([str(ahk_installer)])
 try:
