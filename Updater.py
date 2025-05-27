@@ -48,7 +48,7 @@ files = {
     "icon128.png": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/icon128.png",
     "icon48.png": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/icon48.png",
     "manifest.json": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/manifest.json",
-    "yt-dlp.exe": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/yt-dlp.exe",
+    "yt-dlp.exe": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe",
     "updater.py": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/updater.py",
 }
 
