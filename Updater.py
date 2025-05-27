@@ -1,122 +1,193 @@
 import os
-import sys
-import shutil
 import subprocess
+import time
+import shutil
 from pathlib import Path
-import urllib.request
+from urllib.request import urlretrieve
+import winreg
+import sys
 
 print("== Yt-dlp Installer ==")
 
-user_profile = Path(os.environ["USERPROFILE"])
+# Auto detect user folders
+user_profile = Path.home()
 project_folder = user_profile / "Yt-dlp downloader"
-extension_folder = project_folder / "extension"
-rbtray_dir = project_folder / "RBTray"
-updater_dest = user_profile / "updater.py"
+ext_dir = project_folder / "extension_files"
+yt_dlp_dir = Path("C:/yt-dlp")
+ffmpeg_dir = Path("C:/ffmpeg")
+ytlink_path = user_profile / "OneDrive" / "Documentos" / "ytlink.txt"
+repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main"
+startup_folder = Path(os.getenv("APPDATA")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
 
-project_folder.mkdir(exist_ok=True)
-extension_folder.mkdir(exist_ok=True)
-rbtray_dir.mkdir(exist_ok=True)
+files = ["Download.ahk", "ytlinkserver.py", "README.md"]
+extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
+ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
 
-def download(url, dest):
+def download_file(url, dest):
     try:
-        urllib.request.urlretrieve(url, dest)
-        print(f"Downloaded {dest.name}")
+        urlretrieve(url, dest)
+        print(f"Downloaded {os.path.basename(dest)}")
+        return True
     except Exception as e:
         print(f"Failed to download {url}: {e}")
+        return False
 
-# Download and run AutoHotkey installer
-ahk_installer = project_folder / "ahk-v2.exe"
-download("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer)
-print("Running AutoHotkey installer, please complete installation...")
-subprocess.run([str(ahk_installer)])
-try:
-    ahk_installer.unlink()
-except:
-    print("Could not delete AutoHotkey installer.")
+def run_installer(installer_path):
+    print("Running AutoHotkey installer, please complete installation...")
+    subprocess.run([str(installer_path)], check=False)
+    print("AutoHotkey installer finished or closed.")
+    for attempt in range(5):
+        try:
+            installer_path.unlink()
+            print("Deleted AutoHotkey installer.")
+            break
+        except Exception as e:
+            print(f"Could not delete AutoHotkey installer, retrying... ({e})")
+            time.sleep(1)
 
-# Downloader scripts and others
-main_files = {
-    "Downloader.ahk": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/Downloader.ahk",
-    "ytlinkserver.py": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/ytlinkserver.py",
-    "README.md": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/README.md",
-}
-for fname, url in main_files.items():
-    download(url, project_folder / fname)
-
-# Extension files
-extension_files = {
-    "content.js": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/content.js",
-    "icon128.png": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/icon128.png",
-    "icon48.png": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/icon48.png",
-    "manifest.json": "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/manifest.json",
-}
-for fname, url in extension_files.items():
-    download(url, extension_folder / fname)
-
-# Ask to download yt-dlp.exe
-yt_dlp_path = project_folder / "yt-dlp.exe"
-if Path("C:/yt-dlp").exists():
-    answer = input("yt-dlp folder exists. Update it? (y/n): ").strip().lower()
-    if answer == "y":
-        download("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path)
-
-# Ask about FFmpeg
-if Path("C:/ffmpeg").exists():
-    answer = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
-    if answer == "y":
-        print("Update FFmpeg manually (not implemented).")
-else:
-    print("FFmpeg folder not found, please extract ffmpeg-git-full.7z to C:/ffmpeg")
-
-# RBTray
-for fname in ["RBTray.exe", "RBHook.dll"]:
-    url = f"https://raw.githubusercontent.com/benbuck/rbtray/main/x64/{fname}"
-    download(url, rbtray_dir / fname)
-
-# updater.py
-download("https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/updater.py", updater_dest)
-
-# Shortcuts
-def create_shortcut(target_path, shortcut_name):
+def add_to_user_path(new_path):
     try:
-        import pythoncom
-        from win32com.client import Dispatch
-        startup = user_profile / "AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup"
-        shortcut_path = startup / f"{shortcut_name}.lnk"
-        shell = Dispatch('WScript.Shell')
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment', 0, winreg.KEY_READ) as key:
+            existing_path, _ = winreg.QueryValueEx(key, "PATH")
+    except FileNotFoundError:
+        existing_path = ""
+    if new_path.lower() not in existing_path.lower():
+        updated_path = existing_path + ";" + new_path if existing_path else new_path
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment', 0, winreg.KEY_SET_VALUE) as key:
+            winreg.SetValueEx(key, "PATH", 0, winreg.REG_EXPAND_SZ, updated_path)
+        print(f"Added {new_path} to user PATH.")
+        print("Log off or restart to apply PATH changes.")
+    else:
+        print(f"{new_path} already in user PATH.")
+
+def ahk_installed():
+    for path in os.environ["PATH"].split(";"):
+        if Path(path.strip('"')) / "AutoHotkey.exe" in Path(path).glob("AutoHotkey.exe"):
+            return True
+    return False
+
+def create_shortcut(target, shortcut_path, working_dir=None, args="", icon=""):
+    try:
+        import win32com.client
+        shell = win32com.client.Dispatch("WScript.Shell")
         shortcut = shell.CreateShortcut(str(shortcut_path))
-        shortcut.TargetPath = str(target_path)
-        shortcut.WorkingDirectory = str(target_path.parent)
+        shortcut.TargetPath = str(target)
+        shortcut.WorkingDirectory = str(working_dir or target.parent)
+        shortcut.Arguments = args
+        if icon:
+            shortcut.IconLocation = icon
         shortcut.save()
-        print(f"Shortcut created: {shortcut_path}")
-    except:
-        print(f"Failed to create shortcut for {shortcut_name}. Install pywin32 if needed.")
+        print(f"Shortcut created: {shortcut_path.name}")
+    except Exception as e:
+        print(f"Failed to create shortcut for {target}: {e}")
 
-create_shortcut(project_folder / "Downloader.ahk", "Downloader")
-create_shortcut(project_folder / "ytlinkserver.py", "ytlinkserver")
-create_shortcut(rbtray_dir / "RBTray.exe", "RBTray")
+# Setup folders and file
+project_folder.mkdir(parents=True, exist_ok=True)
+ext_dir.mkdir(exist_ok=True)
+ytlink_path.parent.mkdir(parents=True, exist_ok=True)
+ytlink_path.touch(exist_ok=True)
 
-# Launch scripts
-print("Launching Downloader.ahk, ytlinkserver.py, and RBTray.exe...")
+# 1. AHK
+ahk_installer = project_folder / "AutoHotkey_Installer.exe"
+if not ahk_installed():
+    if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
+        run_installer(ahk_installer)
+    else:
+        print("Failed to download AutoHotkey installer. Please install manually.")
+else:
+    print("AutoHotkey already installed.")
+
+# 2. Download scripts
+for file in files:
+    download_file(f"{repo_base}/{file}", project_folder / file)
+for file in extension_files:
+    download_file(f"{repo_base}/{file}", ext_dir / file)
+
+# 3. yt-dlp
+skip_yt_dlp = False
+if yt_dlp_dir.exists():
+    confirm = input("yt-dlp folder exists. Update it? (y/n): ").strip().lower()
+    if confirm == "y":
+        shutil.rmtree(yt_dlp_dir)
+        print("yt-dlp folder removed.")
+    else:
+        skip_yt_dlp = True
+
+if not skip_yt_dlp:
+    yt_dlp_dir.mkdir(exist_ok=True)
+    yt_dlp_path = yt_dlp_dir / "yt-dlp.exe"
+    if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
+        add_to_user_path(str(yt_dlp_dir))
+
+# 4. FFmpeg
+skip_ffmpeg = False
+if ffmpeg_dir.exists():
+    confirm = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
+    if confirm == "y":
+        shutil.rmtree(ffmpeg_dir)
+        print("FFmpeg folder removed.")
+    else:
+        skip_ffmpeg = True
+
+if not skip_ffmpeg:
+    ffmpeg_dir.mkdir(exist_ok=True)
+    if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_zip):
+        print("Please extract ffmpeg-git-full.7z to C:/ffmpeg")
+        subprocess.run(f'explorer "{ffmpeg_dir}"')
+        yn = input("Have you extracted it? (y/n): ").strip().lower()
+        if yn == "y":
+            target_bin = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
+            if target_bin.exists():
+                add_to_user_path(str(target_bin))
+            else:
+                print("Could not find expected bin folder at:", target_bin)
+        try:
+            ffmpeg_zip.unlink()
+            print("Deleted FFmpeg archive.")
+        except Exception as e:
+            print(f"Couldn't delete FFmpeg archive: {e}")
+    else:
+        print("Failed to download FFmpeg archive.")
+
+# 5. Download RBTray
+rbtray_dir = project_folder / "RBTray"
+rbtray_dir.mkdir(parents=True, exist_ok=True)
+rbtray_files = {
+    "RBTray.exe": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBTray.exe",
+    "RBHook.dll": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBHook.dll"
+}
+for filename, url in rbtray_files.items():
+    dest_path = rbtray_dir / filename
+    download_file(url, dest_path)
+
+# 6. Download updater.py
 try:
-    os.startfile(str(project_folder / "Downloader.ahk"))
+    updater_url = f"{repo_base}/Updater.py"
+    updater_path = user_profile / "updater.py"
+    urlretrieve(updater_url, updater_path)
+    print(f"Downloaded updater.py to: {updater_path}")
 except Exception as e:
-    print(f"Couldn't launch .ahk: {e}")
+    print(f"Failed to download updater.py: {e}")
 
-try:
-    subprocess.Popen([sys.executable, str(project_folder / "ytlinkserver.py")], creationflags=subprocess.CREATE_NEW_CONSOLE)
-except Exception as e:
-    print(f"Couldn't launch ytlinkserver: {e}")
+# 7. Add to Startup
+download_ahk = project_folder / "Download.ahk"
+ytlinkserver_py = project_folder / "ytlinkserver.py"
+rbtray_exe = rbtray_dir / "RBTray.exe"
 
-try:
-    subprocess.Popen([str(rbtray_dir / "RBTray.exe")])
-except Exception as e:
-    print(f"Couldn't launch RBTray: {e}")
+create_shortcut(rbtray_exe, startup_folder / "RBTray.lnk")
 
-# Delete self
-try:
-    os.remove(__file__)
-except:
-    pass
+create_shortcut("cmd.exe", startup_folder / "Start ytlinkserver.lnk",
+                args=f'/k python "{ytlinkserver_py}"')
 
-print("Install complete!")
+create_shortcut(download_ahk, startup_folder / "Download AHK.lnk")
+
+# 8. Delete self if named install.py
+script_path = Path(__file__)
+if script_path.name.lower() == "install.py":
+    try:
+        os.remove(script_path)
+        print("Deleted install.py")
+    except Exception as e:
+        print(f"Could not delete install.py: {e}")
+
+print("Update complete!")
