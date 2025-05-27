@@ -168,6 +168,15 @@ create_shortcut(Path("C:/Windows/System32/cmd.exe"), startup_folder / "Start ytl
                 args=f'/k python "{project_folder / "ytlinkserver.py"}"')
 create_shortcut(project_folder / "Downloader.ahk", startup_folder / "Download AHK.lnk")
 
+# 9. Run RBTray, ytlinkserver.py in new window, and Downloader.ahk like it's double-clicked
+try:
+    subprocess.Popen([str(rbtray_dir / "RBTray.exe")])
+    subprocess.Popen(["cmd", "/c", "start", "python", str(project_folder / "ytlinkserver.py")])
+    subprocess.Popen([str(project_folder / "Downloader.ahk")], shell=True)
+    print("Launched RBTray, ytlinkserver, and Downloader.ahk")
+except Exception as e:
+    print(f"Failed to launch startup apps: {e}")
+
 # 7. Download updater.py
 try:
     updater_url = f"{repo_base}/Updater.py"
