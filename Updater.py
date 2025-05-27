@@ -6,12 +6,10 @@ from pathlib import Path
 from urllib.request import urlretrieve
 import winreg
 import sys
-import winshell
-from win32com.client import Dispatch
 
 print("== Yt-dlp Installer ==")
 
-# Auto detect user folders
+# Paths
 user_profile = Path.home()
 project_folder = user_profile / "Yt-dlp downloader"
 ext_dir = project_folder / "extension_files"
@@ -24,8 +22,7 @@ files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
 ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
 
-startup_dir = Path(os.getenv("APPDATA")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
-
+# Helpers
 def download_file(url, dest):
     try:
         urlretrieve(url, dest)
@@ -64,26 +61,42 @@ def add_to_user_path(new_path):
         print(f"{new_path} already in user PATH.")
 
 def ahk_installed():
-    for path in os.environ["PATH"].split(";"):
+    for path in os.environ.get("PATH", "").split(";"):
         if Path(path.strip('"')) / "AutoHotkey.exe" in Path(path).glob("AutoHotkey.exe"):
             return True
     return False
 
-def create_shortcut(target_path, shortcut_path, working_dir=None):
+def find_ahk_exe():
+    candidates = [
+        os.path.join(os.environ.get("ProgramFiles", "C:\\Program Files"), "AutoHotkey", "AutoHotkey.exe"),
+        os.path.join(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)"), "AutoHotkey", "AutoHotkey.exe"),
+        os.path.join(str(user_profile), "AppData", "Local", "Programs", "AutoHotkey", "AutoHotkey.exe"),
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+    return None
+
+def create_shortcut(target, shortcut_path, description=""):
+    import pythoncom
+    from win32com.shell import shell, shellcon
+    from win32com.client import Dispatch
+
     shell = Dispatch('WScript.Shell')
     shortcut = shell.CreateShortcut(str(shortcut_path))
-    shortcut.TargetPath = str(target_path)
-    shortcut.WorkingDirectory = str(working_dir) if working_dir else str(Path(target_path).parent)
+    shortcut.TargetPath = str(target)
+    shortcut.WorkingDirectory = str(target.parent)
+    shortcut.Description = description
     shortcut.Save()
     print(f"Shortcut created: {shortcut_path}")
 
-# Setup folders and file
+# Prepare folders
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
 
-# 1. AHK
+# 1. Install AutoHotkey if missing
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_installed():
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
@@ -93,13 +106,13 @@ if not ahk_installed():
 else:
     print("AutoHotkey already installed.")
 
-# 2. Download scripts
+# 2. Download scripts & extension files
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
 for file in extension_files:
     download_file(f"{repo_base}/{file}", ext_dir / file)
 
-# 3. yt-dlp
+# 3. Download or update yt-dlp
 skip_yt_dlp = False
 if yt_dlp_dir.exists():
     confirm = input("yt-dlp folder exists. Update it? (y/n): ").strip().lower()
@@ -115,7 +128,7 @@ if not skip_yt_dlp:
     if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
         add_to_user_path(str(yt_dlp_dir))
 
-# 4. FFmpeg
+# 4. Download or update FFmpeg
 skip_ffmpeg = False
 if ffmpeg_dir.exists():
     confirm = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
@@ -145,7 +158,7 @@ if not skip_ffmpeg:
     else:
         print("Failed to download FFmpeg archive.")
 
-# 5. Download RBTray
+# 5. Download RBTray files
 rbtray_dir = project_folder / "RBTray"
 rbtray_dir.mkdir(parents=True, exist_ok=True)
 rbtray_files = {
@@ -156,7 +169,7 @@ for filename, url in rbtray_files.items():
     dest_path = rbtray_dir / filename
     download_file(url, dest_path)
 
-# 6. Download updater.py
+# 6. Download updater.py to user profile
 try:
     updater_url = f"{repo_base}/Updater.py"
     updater_path = user_profile / "updater.py"
@@ -165,22 +178,40 @@ try:
 except Exception as e:
     print(f"Failed to download updater.py: {e}")
 
-# 7. Startup shortcuts
-create_shortcut(project_folder / "Downloader.ahk", startup_dir / "Downloader.lnk")
-create_shortcut(project_folder / "ytlinkserver.py", startup_dir / "ytlinkserver.lnk")
-create_shortcut(rbtray_dir / "RBTray.exe", startup_dir / "RBTray.lnk")
+# 7. Create Startup shortcuts for Downloader.ahk, ytlinkserver.py, RBTray.exe
+startup_folder = user_profile / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+startup_folder.mkdir(exist_ok=True)
 
-# 8. Run scripts now
-print("Launching downloader, ytlinkserver, and RBTray...")
 try:
-    subprocess.Popen(["AutoHotkey.exe", str(project_folder / "Downloader.ahk")])
-except FileNotFoundError:
-    print("AutoHotkey.exe not found. Make sure it's installed and added to PATH.")
+    import pythoncom
+    from win32com.shell import shell, shellcon
+    from win32com.client import Dispatch
 
-subprocess.Popen([sys.executable, str(project_folder / "ytlinkserver.py")])
-subprocess.Popen([str(rbtray_dir / "RBTray.exe")])
+    ahk_path = project_folder / "Downloader.ahk"
+    ytlinkserver_path = project_folder / "ytlinkserver.py"
+    rbtray_exe_path = rbtray_dir / "RBTray.exe"
 
-# 9. Delete self if named install.py
+    create_shortcut(ahk_path, startup_folder / "Downloader.lnk", "Run Downloader AHK script")
+    create_shortcut(ytlinkserver_path, startup_folder / "ytlinkserver.lnk", "Run ytlinkserver Python script")
+    create_shortcut(rbtray_exe_path, startup_folder / "RBTray.lnk", "Run RBTray")
+
+except ImportError:
+    print("pywin32 not installed; skipping shortcut creation. You can manually add these to startup.")
+
+# 8. Launch Downloader.ahk, ytlinkserver.py, RBTray.exe now
+def launch_apps():
+    ahk_exe = find_ahk_exe()
+    if ahk_exe is None:
+        print("AutoHotkey.exe not found. Please install AutoHotkey manually to run scripts.")
+    else:
+        subprocess.Popen([ahk_exe, str(project_folder / "Downloader.ahk")])
+    subprocess.Popen([sys.executable, str(project_folder / "ytlinkserver.py")])
+    subprocess.Popen([str(rbtray_dir / "RBTray.exe")])
+    print("Launched Downloader.ahk, ytlinkserver.py, and RBTray.exe.")
+
+launch_apps()
+
+# 9. Delete installer script if named install.py
 script_path = Path(__file__)
 if script_path.name.lower() == "updater.py":
     try:
