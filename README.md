@@ -1,58 +1,36 @@
-How to install and use the Yt-dlp downloader with FFmpeg and AutoHotkey
-Run the updater script (update.py).
+🐍 1. Install Python (if not installed)
+Go here:
+https://www.python.org/downloads/windows
 
-This will download the latest versions of all required files including:
+Download the Installer for your System.
 
-yt-dlp.exe (video downloader)
+Run it.
 
-AutoHotkey_Installer.exe (AutoHotkey installer)
+IMPORTANT: On the install screen, check the box that says "Add Python to PATH", then click "Install Now".
 
-Extension files (content.js, icon128.png, icon48.png, manifest.json)
+📦 2. Install Python packages
+Open Command Prompt and run:
 
-FFmpeg .7z archive (ffmpeg-git-full.7z)
+pip install pywin32 flask
 
-Install AutoHotkey
+📥 3. Download the installer script
+If you haven’t already, save your install.py file into your user folder.
 
-The updater runs the AutoHotkey installer automatically.
+▶ 4. Run the installer
+In Command Prompt, run install.py
+That will:
 
-Complete the installation when prompted.
+Install AutoHotkey if needed
 
-The script will try to delete the installer afterward. If it can’t, just delete it manually.
+Download yt-dlp, FFmpeg, and browser extension files
 
-Extract FFmpeg manually
+Set up folders and scripts
 
-The updater downloads the FFmpeg archive (ffmpeg-git-full.7z) to C:\ffmpeg (create this folder if it doesn’t exist).
+Create startup shortcuts for:
 
-You must extract the contents of the .7z archive inside the C:\ffmpeg folder.
+Downloader.ahk
 
-After extraction, there will be a folder named something like ffmpeg-2025-05-21-git-...-full_build inside C:\ffmpeg.
+ytlinkserver.py
 
-The full path to the FFmpeg bin folder will look like:
-
-C:\ffmpeg\ffmpeg-2025-05-21-git-4099d53759-full_build\bin
-You can extract using tools like 7-Zip or WinRAR.
-
-Tell the updater script you finished extracting FFmpeg
-
-The updater will prompt:
-
-Have you extracted FFmpeg archive to C:\ffmpeg? (y/n):
-Type y and press Enter once extraction is complete.
-
-The updater will then add the FFmpeg bin folder path to your user PATH environment variable automatically.
-
-Yt-dlp
-
-yt-dlp.exe is downloaded and placed into C:\yt-dlp.
-
-The updater adds C:\yt-dlp to your user PATH automatically.
-
-Restart or log off
-
-To apply the PATH changes, restart your computer or log off and log back in.
-
-Using the tools
-
-You can now run yt-dlp and ffmpeg commands from any Command Prompt or script.
-
-AutoHotkey scripts will work if you installed AutoHotkey correctly.
+✅ 5. You're done!
+On your next login, everything will start automatically.
