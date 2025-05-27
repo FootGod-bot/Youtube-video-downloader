@@ -7,7 +7,7 @@ from urllib.request import urlretrieve
 import winreg
 import sys
 
-print("== Yt-dlp Installer ==")
+print("== Yt-dlp Updater ==")
 
 # Auto detect user folders
 user_profile = Path.home()
@@ -157,11 +157,11 @@ except Exception as e:
 
 # 7. Delete self if named install.py
 script_path = Path(__file__)
-if script_path.name.lower() == "install.py":
+if script_path.name.lower() == "updater.py":
     try:
         os.remove(script_path)
-        print("Deleted install.py")
+        print("Deleted updater.py")
     except Exception as e:
-        print(f"Could not delete install.py: {e}")
+        print(f"Could not delete updater.py: {e}")
 
 print("Update complete!")
