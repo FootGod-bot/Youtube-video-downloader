@@ -6,6 +6,8 @@ from pathlib import Path
 from urllib.request import urlretrieve
 import winreg
 import sys
+import pythoncom
+import win32com.client
 
 print("== Yt-dlp Installer ==")
 
@@ -16,8 +18,8 @@ ext_dir = project_folder / "extension_files"
 yt_dlp_dir = Path("C:/yt-dlp")
 ffmpeg_dir = Path("C:/ffmpeg")
 ytlink_path = user_profile / "OneDrive" / "Documentos" / "ytlink.txt"
+startup_folder = Path(os.getenv('APPDATA')) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup'
 repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main"
-startup_folder = Path(os.getenv("APPDATA")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
 
 files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
@@ -66,18 +68,16 @@ def ahk_installed():
             return True
     return False
 
-def create_shortcut(target, shortcut_path, working_dir=None, args="", icon=""):
+def create_shortcut(target, lnk_path, args="", working_dir=None):
     try:
-        import win32com.client
+        pythoncom.CoInitialize()
         shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortcut(str(shortcut_path))
+        shortcut = shell.CreateShortcut(str(lnk_path))
         shortcut.TargetPath = str(target)
-        shortcut.WorkingDirectory = str(working_dir or target.parent)
         shortcut.Arguments = args
-        if icon:
-            shortcut.IconLocation = icon
-        shortcut.save()
-        print(f"Shortcut created: {shortcut_path.name}")
+        shortcut.WorkingDirectory = str(working_dir or target.parent)
+        shortcut.Save()
+        print(f"Shortcut created: {lnk_path.name}")
     except Exception as e:
         print(f"Failed to create shortcut for {target}: {e}")
 
@@ -152,15 +152,23 @@ if not skip_ffmpeg:
 # 5. Download RBTray
 rbtray_dir = project_folder / "RBTray"
 rbtray_dir.mkdir(parents=True, exist_ok=True)
+
 rbtray_files = {
     "RBTray.exe": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBTray.exe",
     "RBHook.dll": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBHook.dll"
 }
+
 for filename, url in rbtray_files.items():
     dest_path = rbtray_dir / filename
     download_file(url, dest_path)
 
-# 6. Download updater.py
+# 6. Create .lnk files in Startup folder
+create_shortcut(rbtray_dir / "RBTray.exe", startup_folder / "RBTray.lnk")
+create_shortcut(Path("C:/Windows/System32/cmd.exe"), startup_folder / "Start ytlinkserver.lnk",
+                args=f'/k python "{project_folder / "ytlinkserver.py"}"')
+create_shortcut(project_folder / "Downloader.ahk", startup_folder / "Download AHK.lnk")
+
+# 7. Download updater.py
 try:
     updater_url = f"{repo_base}/Updater.py"
     updater_path = user_profile / "updater.py"
@@ -169,21 +177,9 @@ try:
 except Exception as e:
     print(f"Failed to download updater.py: {e}")
 
-# 7. Add to Startup
-download_ahk = project_folder / "Download.ahk"
-ytlinkserver_py = project_folder / "ytlinkserver.py"
-rbtray_exe = rbtray_dir / "RBTray.exe"
-
-create_shortcut(rbtray_exe, startup_folder / "RBTray.lnk")
-
-create_shortcut("cmd.exe", startup_folder / "Start ytlinkserver.lnk",
-                args=f'/k python "{ytlinkserver_py}"')
-
-create_shortcut(download_ahk, startup_folder / "Download AHK.lnk")
-
 # 8. Delete self if named install.py
 script_path = Path(__file__)
-if script_path.name.lower() == "install.py":
+if script_path.name.lower() == "updater.py":
     try:
         os.remove(script_path)
         print("Deleted install.py")
