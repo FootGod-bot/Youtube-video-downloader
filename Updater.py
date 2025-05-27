@@ -2,12 +2,14 @@ import os
 import subprocess
 import time
 import shutil
-from pathlib import Path
-from urllib.request import urlretrieve
 import winreg
 import sys
+import pythoncom
+from win32com.shell import shell, shellcon
+from pathlib import Path
+from urllib.request import urlretrieve
 
-print("== Yt-dlp Installer ==")
+print("== Yt-dlp Updater ==")
 
 # Auto detect user folders
 user_profile = Path.home()
@@ -64,6 +66,23 @@ def ahk_installed():
         if Path(path.strip('"')) / "AutoHotkey.exe" in Path(path).glob("AutoHotkey.exe"):
             return True
     return False
+
+def create_shortcut(target_path, shortcut_name, arguments="", start_in=None):
+    startup_dir = Path(shell.SHGetFolderPath(0, shellcon.CSIDL_STARTUP, None, 0))
+    shortcut_path = startup_dir / f"{shortcut_name}.lnk"
+
+    shell_link = pythoncom.CoCreateInstance(
+        shell.CLSID_ShellLink, None,
+        pythoncom.CLSCTX_INPROC_SERVER, shell.IID_IShellLink
+    )
+    shell_link.SetPath(str(target_path))
+    if arguments:
+        shell_link.SetArguments(arguments)
+    if start_in:
+        shell_link.SetWorkingDirectory(str(start_in))
+    persist_file = shell_link.QueryInterface(pythoncom.IID_IPersistFile)
+    persist_file.Save(str(shortcut_path), 0)
+    print(f"Shortcut created: {shortcut_path}")
 
 # Setup folders and file
 project_folder.mkdir(parents=True, exist_ok=True)
@@ -155,7 +174,36 @@ try:
 except Exception as e:
     print(f"Failed to download updater.py: {e}")
 
-# 7. Delete self if named Updater.py
+# --- Create startup shortcuts for Downloader.ahk and ytlinkserver.py ---
+
+ahk_script = project_folder / "Downloader.ahk"
+python_script = project_folder / "ytlinkserver.py"
+
+# Find AutoHotkey.exe path
+autohotkey_exe = Path("C:/Program Files/AutoHotkey/AutoHotkey.exe")
+if not autohotkey_exe.exists():
+    autohotkey_exe = Path("C:/Program Files (x86)/AutoHotkey/AutoHotkey.exe")
+
+if autohotkey_exe.exists():
+    create_shortcut(
+        target_path=autohotkey_exe,
+        shortcut_name="Downloader (AutoHotkey)",
+        arguments=f'"{ahk_script}"',
+        start_in=project_folder
+    )
+else:
+    print("AutoHotkey.exe not found, cannot create shortcut for Downloader.ahk")
+
+# Create shortcut for ytlinkserver.py using current python interpreter
+python_exe = Path(sys.executable)
+create_shortcut(
+    target_path=python_exe,
+    shortcut_name="ytlinkserver",
+    arguments=f'"{python_script}"',
+    start_in=project_folder
+)
+
+# 7. Delete self if named updater.py
 script_path = Path(__file__)
 if script_path.name.lower() == "updater.py":
     try:
