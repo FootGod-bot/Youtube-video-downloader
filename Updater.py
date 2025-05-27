@@ -93,6 +93,7 @@ if not skip_ffmpeg:
     if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_zip):
         print("Please extract ffmpeg-git-full.7z to C:/ffmpeg")
         subprocess.run(f'explorer "{ffmpeg_dir}"')
+        time.sleep(3)
         yn = input("Have you extracted it? (y/n): ").strip().lower()
         if yn == "y":
             target_bin = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
@@ -142,7 +143,7 @@ except Exception as e:
 
 # 7. Delete self if named install.py
 script_path = Path(__file__)
-if script_path.name.lower() == "install.py":
+if script_path.name.lower() == "updater.py":
     try:
         os.remove(script_path)
         print("Deleted install.py")
