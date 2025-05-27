@@ -19,7 +19,7 @@ ytlink_path = user_profile / "OneDrive" / "Documentos" / "ytlink.txt"
 repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main"
 startup_folder = Path(os.getenv("APPDATA")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
 
-files = ["Download.ahk", "ytlinkserver.py", "README.md"]
+files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
 ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
 
