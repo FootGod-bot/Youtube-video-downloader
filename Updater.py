@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from urllib.request import urlretrieve
 import winreg
+import sys
 
 print("== Yt-dlp Updater ==")
 
@@ -64,7 +65,7 @@ def ahk_installed():
             return True
     return False
 
-# Make directories and ytlink.txt
+# Setup folders and file
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
@@ -80,60 +81,74 @@ if not ahk_installed():
 else:
     print("AutoHotkey already installed.")
 
-# 2. Download all script files
+# 2. Download scripts
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
 for file in extension_files:
     download_file(f"{repo_base}/{file}", ext_dir / file)
 
 # 3. yt-dlp
+skip_yt_dlp = False
 if yt_dlp_dir.exists():
     confirm = input("yt-dlp folder exists. Update it? (y/n): ").strip().lower()
     if confirm == "y":
         shutil.rmtree(yt_dlp_dir)
         print("yt-dlp folder removed.")
-yt_dlp_dir.mkdir(exist_ok=True)
-yt_dlp_path = yt_dlp_dir / "yt-dlp.exe"
-if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
-    add_to_user_path(str(yt_dlp_dir))
+    else:
+        skip_yt_dlp = True
+
+if not skip_yt_dlp:
+    yt_dlp_dir.mkdir(exist_ok=True)
+    yt_dlp_path = yt_dlp_dir / "yt-dlp.exe"
+    if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
+        add_to_user_path(str(yt_dlp_dir))
 
 # 4. FFmpeg
+skip_ffmpeg = False
 if ffmpeg_dir.exists():
     confirm = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
     if confirm == "y":
         shutil.rmtree(ffmpeg_dir)
-        ffmpeg_dir.mkdir()
         print("FFmpeg folder removed.")
-ffmpeg_dir.mkdir(exist_ok=True)
+    else:
+        skip_ffmpeg = True
 
-if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_zip):
-    print("Please extract ffmpeg-git-full.7z to C:/ffmpeg")
-    subprocess.run(f'explorer "{ffmpeg_dir}"')
-    yn = input("Have you extracted it? (y/n): ").strip().lower()
-    if yn == "y":
-        target_bin = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
-        if target_bin.exists():
-            add_to_user_path(str(target_bin))
-        else:
-            print("Could not find expected bin folder at:", target_bin)
-    try:
-        ffmpeg_zip.unlink()
-        print("Deleted FFmpeg archive.")
-    except Exception as e:
-        print(f"Couldn't delete FFmpeg archive: {e}")
-else:
-    print("Failed to download FFmpeg archive.")
+if not skip_ffmpeg:
+    ffmpeg_dir.mkdir(exist_ok=True)
+    if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_zip):
+        print("Please extract ffmpeg-git-full.7z to C:/ffmpeg")
+        subprocess.run(f'explorer "{ffmpeg_dir}"')
+        yn = input("Have you extracted it? (y/n): ").strip().lower()
+        if yn == "y":
+            target_bin = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
+            if target_bin.exists():
+                add_to_user_path(str(target_bin))
+            else:
+                print("Could not find expected bin folder at:", target_bin)
+        try:
+            ffmpeg_zip.unlink()
+            print("Deleted FFmpeg archive.")
+        except Exception as e:
+            print(f"Couldn't delete FFmpeg archive: {e}")
+    else:
+        print("Failed to download FFmpeg archive.")
 
-# 5. Rename script to update.py and delete old
+# 5. Download updater.py
+try:
+    updater_url = f"{repo_base}/Updater.py"
+    updater_path = user_profile / "updater.py"
+    urlretrieve(updater_url, updater_path)
+    print(f"Downloaded updater.py to: {updater_path}")
+except Exception as e:
+    print(f"Failed to download updater.py: {e}")
+
+# 6. Delete self if named install.py
 script_path = Path(__file__)
-if script_path.name.lower() != "update.py":
-    new_path = script_path.with_name("update.py")
-    shutil.copy(script_path, new_path)
-    print("Copied script to update.py")
+if script_path.name.lower() == "install.py":
     try:
-        script_path.unlink()
-        print("Deleted original install script.")
+        os.remove(script_path)
+        print("Deleted install.py")
     except Exception as e:
-        print(f"Could not delete original script: {e}")
+        print(f"Could not delete install.py: {e}")
 
 print("Update complete!")
