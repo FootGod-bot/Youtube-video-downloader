@@ -1,6 +1,7 @@
 #Requires AutoHotkey v1.1
 #Persistent
 askDownload := "yes"  ; Change to "no" to skip asking
+hiddenHwnd := ""      ; stores the window that was hidden
 
 SetTimer, CheckForNewLink, 1000
 return
@@ -36,13 +37,18 @@ CheckForNewLink:
     }
 return
 
-; --- Minimize any active window to system tray ---
-^+m::  ; Ctrl+Shift+M to hide window
-WinGet, hWnd, ID, A
-DllCall("ShowWindow", "UInt", hWnd, "Int", 0x0) ; SW_HIDE
+; Ctrl+Shift+M - Hide active window
+^+m::
+    WinGet, hiddenHwnd, ID, A
+    DllCall("ShowWindow", "UInt", hiddenHwnd, "Int", 0x0) ; SW_HIDE
 return
 
-^+u::  ; Ctrl+Shift+U to show window
-WinGet, hWnd, ID, A
-DllCall("ShowWindow", "UInt", hWnd, "Int", 0x5) ; SW_SHOW
+; Ctrl+Shift+U - Restore the last hidden window
+^+u::
+    if (hiddenHwnd != "")
+    {
+        DllCall("ShowWindow", "UInt", hiddenHwnd, "Int", 0x5) ; SW_SHOW
+        WinActivate, ahk_id %hiddenHwnd%
+        hiddenHwnd := "" ; optional: clear so it doesn't keep reopening
+    }
 return
