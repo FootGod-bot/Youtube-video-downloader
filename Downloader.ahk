@@ -1,9 +1,19 @@
 #Requires AutoHotkey v1.1
 #Persistent
+
+; === YouTube downloader setup ===
 askDownload := "yes"  ; Change to "no" to skip asking
-hiddenHwnd := ""      ; stores the window that was hidden
 
 SetTimer, CheckForNewLink, 1000
+
+; === Variables for hiding cmd window ===
+hiddenHwnd := 0
+
+; === Tray menu for restoring CMD or exiting ===
+Menu, Tray, Add, Restore CMD, RestoreCMD
+Menu, Tray, Add, Exit, ExitScript
+Menu, Tray, Hide  ; start hidden
+
 return
 
 CheckForNewLink:
@@ -37,18 +47,26 @@ CheckForNewLink:
     }
 return
 
-; Ctrl+Shift+M - Hide active window
-^+m::
-    WinGet, hiddenHwnd, ID, A
-    DllCall("ShowWindow", "UInt", hiddenHwnd, "Int", 0x0) ; SW_HIDE
-return
-
-; Ctrl+Shift+U - Restore the last hidden window
-^+u::
-    if (hiddenHwnd != "")
-    {
-        DllCall("ShowWindow", "UInt", hiddenHwnd, "Int", 0x5) ; SW_SHOW
-        WinActivate, ahk_id %hiddenHwnd%
-        hiddenHwnd := "" ; optional: clear so it doesn't keep reopening
+; === Hotkey to hide active cmd window and show tray menu ===
+^+m::  ; Ctrl+Shift+M
+    WinGetClass, class, A
+    if (class = "ConsoleWindowClass") {
+        WinGet, hiddenHwnd, ID, A
+        WinHide, ahk_id %hiddenHwnd%
+        Menu, Tray, Show
     }
 return
+
+; === Tray menu item to restore hidden cmd window ===
+RestoreCMD:
+    if (hiddenHwnd) {
+        WinShow, ahk_id %hiddenHwnd%
+        WinActivate, ahk_id %hiddenHwnd%
+        hiddenHwnd := 0
+        Menu, Tray, Hide
+    }
+return
+
+; === Tray menu item to exit the script ===
+ExitScript:
+    ExitApp
