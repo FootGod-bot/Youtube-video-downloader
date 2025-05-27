@@ -18,7 +18,7 @@ ffmpeg_dir = Path("C:/ffmpeg")
 ytlink_path = user_profile / "OneDrive" / "Documentos" / "ytlink.txt"
 repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main"
 
-files = ["Download.ahk", "ytlinkserver.py", "README.md"]
+files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
 ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
 
@@ -133,7 +133,22 @@ if not skip_ffmpeg:
     else:
         print("Failed to download FFmpeg archive.")
 
-# 5. Download updater.py
+# 5. Download RBTray
+rbtray_dir = project_folder / "RBTray"
+rbtray_dir.mkdir(parents=True, exist_ok=True)
+
+rbtray_files = {
+    "RBTray.exe": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBTray.exe",
+    "RBHook.dll": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBHook.dll"
+}
+
+for filename, url in rbtray_files.items():
+    dest_path = rbtray_dir / filename
+    download_file(url, dest_path)
+
+
+
+# 6. Download updater.py
 try:
     updater_url = f"{repo_base}/Updater.py"
     updater_path = user_profile / "updater.py"
@@ -142,9 +157,8 @@ try:
 except Exception as e:
     print(f"Failed to download updater.py: {e}")
 
-# 6. Delete self if named install.py
+# 7. Delete self if named install.py
 script_path = Path(__file__)
-if script_path.name.lower() == "install.py":
     try:
         os.remove(script_path)
         print("Deleted install.py")
