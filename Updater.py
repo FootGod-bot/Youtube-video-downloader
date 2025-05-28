@@ -20,7 +20,7 @@ ffmpeg_dir = Path("C:/ffmpeg")
 ytlink_path = user_profile / "OneDrive" / "Documentos" / "ytlink.txt"
 startup_dir = Path(os.getenv("APPDATA")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
 rbtray_dir = project_folder / "RBTray"
-repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main"
+repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/refs/heads/main"
 
 files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
