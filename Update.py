@@ -23,7 +23,7 @@ files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
 ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
 ahk_v1_path = user_profile / "AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe"
-install_ahk_script = user_profile / "AppData/Local/Programs/AutoHotkey/UX/install.ahk"
+install_ahk_script = user_profile / "AppData/Local/Programs/AutoHotkey/UX/install-version.ahk"
 
 def download_file(url, dest):
     try:
