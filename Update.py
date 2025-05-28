@@ -25,7 +25,6 @@ ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
 ahk_v1_path = user_profile / "AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe"
 install_ahk_script = user_profile / "AppData/Local/Programs/AutoHotkey/UX/install.ahk"
 
-
 def download_file(url, dest):
     try:
         urlretrieve(url, dest)
@@ -34,7 +33,6 @@ def download_file(url, dest):
     except Exception as e:
         print(f"Failed to download {url}: {e}")
         return False
-
 
 def run_installer(installer_path):
     print("Running AutoHotkey installer...")
@@ -48,7 +46,6 @@ def run_installer(installer_path):
         except Exception as e:
             print(f"Could not delete installer, retrying... ({e})")
             time.sleep(1)
-
 
 def add_to_user_path(new_path):
     try:
@@ -65,7 +62,6 @@ def add_to_user_path(new_path):
     else:
         print(f"{new_path} already in user PATH.")
 
-
 def create_shortcut(target, arguments, shortcut_path, run_minimized=True):
     pythoncom.CoInitialize()
     shell = win32com.client.Dispatch("WScript.Shell")
@@ -77,10 +73,8 @@ def create_shortcut(target, arguments, shortcut_path, run_minimized=True):
     shortcut.save()
     print(f"Shortcut created: {shortcut_path.name}")
 
-
 def run_shortcut(shortcut_path):
     subprocess.run(["cmd", "/c", str(shortcut_path)], shell=True)
-
 
 def find_ahk_exe():
     paths = [
@@ -109,9 +103,12 @@ if not ahk_exe_path:
 
 if not ahk_v1_path.exists():
     if install_ahk_script.exists():
-        print(f"Running AHK install script: {install_ahk_script}")
-        subprocess.run([str(ahk_exe_path), str(install_ahk_script)], check=False)
-        print("AHK install script completed successfully.")
+        if ahk_exe_path:
+            print(f"Running AHK install script: {install_ahk_script}")
+            subprocess.run([str(ahk_exe_path), str(install_ahk_script)], check=False)
+            print("AHK install script completed successfully.")
+        else:
+            print("AutoHotkey v2 is not found. Cannot run install.ahk.")
 
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
