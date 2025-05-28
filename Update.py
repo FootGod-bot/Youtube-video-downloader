@@ -94,7 +94,6 @@ ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_exe_path:
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
         run_installer(ahk_installer)
-        ahk_exe_path = find_ahk_exe()
     else:
         print("Failed to download AutoHotkey installer. Please install manually.")
 else:
@@ -169,8 +168,9 @@ create_shortcut("cmd.exe", f'/c start "" "{python_exe}" "{ytlinkserver_script}"'
 
 ahk_script = project_folder / "Downloader.ahk"
 ahk_shortcut = startup_folder / "downloader.ahk.lnk"
-if ahk_exe_path:
-    create_shortcut(str(ahk_exe_path), f'"{ahk_script}"', ahk_shortcut, run_minimized=False)
+ahk_v1_path = user_profile / "AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe"
+if ahk_v1_path.exists():
+    create_shortcut(str(ahk_v1_path), f'"{ahk_script}"', ahk_shortcut, run_minimized=False)
 else:
     print("AutoHotkey.exe not found. Cannot create Downloader.ahk shortcut.")
 
