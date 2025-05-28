@@ -135,9 +135,17 @@ if not skip_ffmpeg:
         subprocess.run(f'explorer "{ffmpeg_dir}"')
         yn = input("Have you extracted it? (y/n): ").strip().lower()
         if yn == "y":
-            target_bin = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
-            if target_bin.exists():
-                add_to_user_path(str(target_bin))
+            bin_path = None
+            for sub in (ffmpeg_dir / "ffmpeg-git-full").iterdir():
+                if sub.is_dir() and "full_build" in sub.name:
+                    maybe_bin = sub / "bin"
+                    if maybe_bin.exists():
+                        bin_path = maybe_bin
+                        break
+            if bin_path:
+                add_to_user_path(str(bin_path))
+            else:
+                print("Could not find ffmpeg bin folder automatically.")
         try:
             ffmpeg_zip.unlink()
             print("Deleted FFmpeg archive.")
