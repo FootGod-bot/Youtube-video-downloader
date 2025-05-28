@@ -101,6 +101,8 @@ ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_exe_path:
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
         run_installer(ahk_installer)
+        # Refresh ahk_exe_path after install
+        ahk_exe_path = find_ahk_exe()
     else:
         print("Failed to download AutoHotkey installer. Please install manually.")
 else:
