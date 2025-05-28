@@ -23,6 +23,10 @@ files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
 ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
 
+ahk_v1_path = Path("C:/Users/aiden/AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe")
+install_ahk_script = Path("C:/Users/aiden/AppData/Local/Programs/AutoHotkey/UX/install.ahk")
+
+
 def download_file(url, dest):
     try:
         urlretrieve(url, dest)
@@ -31,6 +35,7 @@ def download_file(url, dest):
     except Exception as e:
         print(f"Failed to download {url}: {e}")
         return False
+
 
 def run_installer(installer_path):
     print("Running AutoHotkey installer...")
@@ -44,6 +49,7 @@ def run_installer(installer_path):
         except Exception as e:
             print(f"Could not delete installer, retrying... ({e})")
             time.sleep(1)
+
 
 def add_to_user_path(new_path):
     try:
@@ -60,6 +66,7 @@ def add_to_user_path(new_path):
     else:
         print(f"{new_path} already in user PATH.")
 
+
 def create_shortcut(target, arguments, shortcut_path, run_minimized=True):
     pythoncom.CoInitialize()
     shell = win32com.client.Dispatch("WScript.Shell")
@@ -71,19 +78,6 @@ def create_shortcut(target, arguments, shortcut_path, run_minimized=True):
     shortcut.save()
     print(f"Shortcut created: {shortcut_path.name}")
 
-def find_ahk_exe():
-    paths = [
-        user_profile / "AppData/Local/Programs/AutoHotkey/UX/AutoHotkeyUX.exe",
-        Path("C:/Program Files/AutoHotkey/UX/AutoHotkeyUX.exe"),
-        Path("C:/Program Files (x86)/AutoHotkey/UX/AutoHotkeyUX.exe"),
-    ]
-    for path in paths:
-        if path.exists():
-            return path
-    return None
-
-ahk_exe_path = find_ahk_exe()
-skip_user_script = (user_profile / "AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe").exists()
 
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
@@ -91,11 +85,11 @@ ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
 
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
-if not ahk_exe_path:
+if not install_ahk_script.exists() and not ahk_v1_path.exists():
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
         run_installer(ahk_installer)
-    else:
-        print("Failed to download AutoHotkey installer. Please install manually.")
+        if install_ahk_script.exists():
+            subprocess.run([str(install_ahk_script)], check=False)
 else:
     print("AutoHotkey already installed.")
 
@@ -135,29 +129,14 @@ if not skip_ffmpeg:
         subprocess.run(f'explorer "{ffmpeg_dir}"')
         yn = input("Have you extracted it? (y/n): ").strip().lower()
         if yn == "y":
-            bin_path = None
-            for sub in (ffmpeg_dir / "ffmpeg-git-full").iterdir():
-                if sub.is_dir() and "full_build" in sub.name:
-                    maybe_bin = sub / "bin"
-                    if maybe_bin.exists():
-                        bin_path = maybe_bin
-                        break
-            if bin_path:
-                add_to_user_path(str(bin_path))
-            else:
-                print("Could not find ffmpeg bin folder automatically.")
+            target_bin = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
+            if target_bin.exists():
+                add_to_user_path(str(target_bin))
         try:
             ffmpeg_zip.unlink()
             print("Deleted FFmpeg archive.")
         except Exception as e:
             print(f"Couldn't delete FFmpeg archive: {e}")
-
-if ahk_exe_path and not skip_user_script:
-    ahk_user_script = user_profile / "AppData/Local/Programs/AutoHotkey/UX/install-version.ahk"
-    if ahk_user_script.exists():
-        print(f"Running AHK install script: {ahk_user_script}")
-        subprocess.run([str(ahk_exe_path), str(ahk_user_script)], check=False)
-        print("AHK install script completed successfully.")
 
 startup_folder = Path(os.getenv('APPDATA')) / "Microsoft/Windows/Start Menu/Programs/Startup"
 for shortcut_name in ["ytlinkserver.lnk", "downloader.ahk.lnk"]:
@@ -176,7 +155,6 @@ create_shortcut("cmd.exe", f'/c start "" "{python_exe}" "{ytlinkserver_script}"'
 
 ahk_script = project_folder / "Downloader.ahk"
 ahk_shortcut = startup_folder / "downloader.ahk.lnk"
-ahk_v1_path = user_profile / "AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe"
 if ahk_v1_path.exists():
     create_shortcut(str(ahk_v1_path), f'"{ahk_script}"', ahk_shortcut, run_minimized=False)
 else:
