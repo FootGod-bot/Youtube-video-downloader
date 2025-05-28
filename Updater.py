@@ -10,13 +10,13 @@ import sys
 print("== Yt-dlp Installer ==")
 
 user_profile = Path.home()
-startup_folder = user_profile / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
 project_folder = user_profile / "Yt-dlp downloader"
 ext_dir = project_folder / "extension_files"
 yt_dlp_dir = Path("C:/yt-dlp")
 ffmpeg_dir = Path("C:/ffmpeg")
 ytlink_path = user_profile / "OneDrive" / "Documentos" / "ytlink.txt"
-repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/refs/heads/main"
+startup_dir = user_profile / "AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup"
+repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main"
 
 files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
@@ -65,28 +65,13 @@ def ahk_installed():
             return True
     return False
 
-def create_shortcut(target, name, args=None, run_new_window=False):
-    import pythoncom
-    from win32com.client import Dispatch
-    shell = Dispatch("WScript.Shell")
-    shortcut = shell.CreateShortCut(str(startup_folder / f"{name}.lnk"))
-    shortcut.TargetPath = str(target)
-    shortcut.WorkingDirectory = str(target.parent)
-    if args:
-        shortcut.Arguments = args
-    if run_new_window:
-        shortcut.IconLocation = "cmd.exe"
-    shortcut.save()
-    print(f"Shortcut created: {name}.lnk")
-
-# Make folders
+# Create required folders
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
-startup_folder.mkdir(parents=True, exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
 
-# 1. AutoHotkey
+# 1. Install AutoHotkey
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_installed():
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
@@ -96,7 +81,7 @@ if not ahk_installed():
 else:
     print("AutoHotkey already installed.")
 
-# 2. Download files
+# 2. Download scripts
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
 for file in extension_files:
@@ -118,7 +103,7 @@ if not skip_yt_dlp:
     if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
         add_to_user_path(str(yt_dlp_dir))
 
-# 4. ffmpeg
+# 4. FFmpeg
 skip_ffmpeg = False
 if ffmpeg_dir.exists():
     confirm = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
@@ -148,28 +133,46 @@ if not skip_ffmpeg:
     else:
         print("Failed to download FFmpeg archive.")
 
-# 5. Add startup shortcuts
-for f in startup_folder.glob("*.lnk"):
-    if f.stem in ["Download AHK", "Ytlink Server"]:
-        f.unlink()
-
-# AHK script shortcut
-create_shortcut(project_folder / "Downloader.ahk", "Download AHK")
-
-# ytlinkserver shortcut (in new window)
-create_shortcut(Path(sys.executable), "Ytlink Server", f'"{project_folder / "ytlinkserver.py"}"', run_new_window=True)
-
-# 6. Download updater.py
+# 5. Download Updater.py (use fixed URL)
 try:
+    updater_url = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/Updater.py"
     updater_path = user_profile / "updater.py"
-    urlretrieve(f"{repo_base}/Updater.py", updater_path)
+    urlretrieve(updater_url, updater_path)
     print(f"Downloaded updater.py to: {updater_path}")
 except Exception as e:
     print(f"Failed to download updater.py: {e}")
 
-# 7. Delete self
+# 6. Add to startup
+def create_shortcut(name, target, args="", open_new_window=False):
+    lnk_path = startup_dir / f"{name}.lnk"
+    if lnk_path.exists():
+        lnk_path.unlink()
+    script = f'''
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut("{lnk_path}")
+$Shortcut.TargetPath = "{target}"
+$Shortcut.Arguments = "{args}"
+$Shortcut.WorkingDirectory = "{project_folder}"
+$Shortcut.WindowStyle = 1
+$Shortcut.IconLocation = "{target},0"
+$Shortcut.Save()
+'''
+    if open_new_window:
+        args = f'/c start cmd /k "python {project_folder / "ytlinkserver.py"}"'
+        subprocess.run(["powershell", "-Command", f'Start-Process cmd -ArgumentList \'{args}\''], shell=True)
+    else:
+        subprocess.run(["powershell", "-Command", script])
+
+# .ahk like double-clicking
+create_shortcut("Downloader AHK", str(project_folder / "Downloader.ahk"))
+
+# server in new terminal window
+create_shortcut("Ytlink Server", "cmd.exe", f'/c start python "{project_folder / "ytlinkserver.py"}"', open_new_window=True)
+
+# 7. Delete this installer
+script_path = Path(__file__)
 try:
-    Path(__file__).unlink()
+    os.remove(script_path)
     print("Deleted install.py")
 except Exception as e:
     print(f"Could not delete install.py: {e}")
