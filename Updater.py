@@ -235,19 +235,23 @@ else:
     print("Cannot create downloader shortcut; AutoHotkey executable or Downloader.ahk not found.")
 
 # 7. Self-delete the installer script after running
-installer_path = Path(__file__)
+import sys
+
+installer_path = Path(sys.argv[0]).resolve()
+bat_path = installer_path.with_suffix('.bat')
+
 try:
-    print(f"Deleting installer script: {installer_path}")
-    # On Windows you cannot delete running script; create a batch file to delete it on exit
-    bat_path = installer_path.with_suffix('.bat')
     with open(bat_path, "w") as f:
         f.write(f"""@echo off
-timeout /t 2 /nobreak >nul
+ping 127.0.0.1 -n 5 > nul
 del "{installer_path}"
 del "%~f0"
 """)
-    subprocess.Popen([str(bat_path)], shell=True)
+    # Run the batch file and detach it
+    subprocess.Popen([str(bat_path)], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print(f"Created and launched self-delete batch: {bat_path}")
 except Exception as e:
-    print(f"Failed to delete installer script automatically: {e}")
+    print(f"Failed to create self-delete batch: {e}")
+
 
 print("Setup complete!")
