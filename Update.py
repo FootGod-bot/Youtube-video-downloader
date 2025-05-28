@@ -78,6 +78,14 @@ def create_shortcut(target, arguments, shortcut_path, run_minimized=True):
     print(f"Shortcut created: {shortcut_path.name}")
 
 
+def run_shortcut(shortcut_path):
+    try:
+        subprocess.Popen(['cmd', '/c', 'start', '', str(shortcut_path)])
+        print(f"Started shortcut: {shortcut_path.name}")
+    except Exception as e:
+        print(f"Failed to start shortcut {shortcut_path.name}: {e}")
+
+
 def find_ahk_exe():
     paths = [
         user_profile / "AppData/Local/Programs/AutoHotkey/UX/AutoHotkeyUX.exe",
@@ -88,6 +96,7 @@ def find_ahk_exe():
         if path.exists():
             return path
     return None
+
 
 ahk_exe_path = find_ahk_exe()
 skip_user_script = ahk_v1_path.exists()
@@ -101,8 +110,6 @@ ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_exe_path:
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
         run_installer(ahk_installer)
-        # Refresh ahk_exe_path after install
-        ahk_exe_path = find_ahk_exe()
     else:
         print("Failed to download AutoHotkey installer. Please install manually.")
 else:
@@ -139,6 +146,7 @@ if ffmpeg_dir.exists():
 
 if not skip_ffmpeg:
     ffmpeg_dir.mkdir(exist_ok=True)
+    print("This may take a while...")
     if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_zip):
         print("Please extract ffmpeg-git-full.7z to C:/ffmpeg")
         subprocess.run(f'explorer "{ffmpeg_dir}"')
@@ -182,11 +190,13 @@ python_exe = sys.executable
 ytlinkserver_script = project_folder / "ytlinkserver.py"
 ytlinkserver_shortcut = startup_folder / "ytlinkserver.lnk"
 create_shortcut("cmd.exe", f'/c start "" "{python_exe}" "{ytlinkserver_script}"', ytlinkserver_shortcut, run_minimized=False)
+run_shortcut(ytlinkserver_shortcut)
 
 ahk_script = project_folder / "Downloader.ahk"
 ahk_shortcut = startup_folder / "downloader.ahk.lnk"
 if ahk_v1_path.exists():
     create_shortcut(str(ahk_v1_path), f'"{ahk_script}"', ahk_shortcut, run_minimized=False)
+    run_shortcut(ahk_shortcut)
 else:
     print("AutoHotkey.exe not found. Cannot create Downloader.ahk shortcut.")
 
