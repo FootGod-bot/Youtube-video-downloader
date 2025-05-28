@@ -22,9 +22,9 @@ repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloa
 files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
 ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
+install_ahk_script = user_profile / "AppData/Local/Programs/AutoHotkey/UX/install.ahk"
 
-ahk_v1_path = Path("C:/Users/aiden/AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe")
-install_ahk_script = Path("C:/Users/aiden/AppData/Local/Programs/AutoHotkey/UX/install.ahk")
+ahk_v1_path = user_profile / "AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe"
 
 
 def download_file(url, dest):
@@ -79,19 +79,35 @@ def create_shortcut(target, arguments, shortcut_path, run_minimized=True):
     print(f"Shortcut created: {shortcut_path.name}")
 
 
+def find_ahk_v2():
+    paths = [
+        user_profile / "AppData/Local/Programs/AutoHotkey/UX/AutoHotkeyUX.exe",
+        Path("C:/Program Files/AutoHotkey/UX/AutoHotkeyUX.exe"),
+        Path("C:/Program Files (x86)/AutoHotkey/UX/AutoHotkeyUX.exe"),
+    ]
+    for path in paths:
+        if path.exists():
+            return path
+    return None
+
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
 
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
-if not install_ahk_script.exists() and not ahk_v1_path.exists():
+ahk_v2_exe = find_ahk_v2()
+
+if not ahk_v2_exe:
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
         run_installer(ahk_installer)
-        if install_ahk_script.exists():
-            subprocess.run([str(install_ahk_script)], check=False)
-else:
-    print("AutoHotkey already installed.")
+        ahk_v2_exe = find_ahk_v2()
+    else:
+        print("Failed to download AutoHotkey installer. Please install manually.")
+
+if ahk_v2_exe and not ahk_v1_path.exists() and install_ahk_script.exists():
+    subprocess.run([str(ahk_v2_exe), str(install_ahk_script)], check=False)
+    print("Ran AHK v1 installer script from v2.")
 
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
@@ -153,11 +169,11 @@ ytlinkserver_script = project_folder / "ytlinkserver.py"
 ytlinkserver_shortcut = startup_folder / "ytlinkserver.lnk"
 create_shortcut("cmd.exe", f'/c start "" "{python_exe}" "{ytlinkserver_script}"', ytlinkserver_shortcut, run_minimized=False)
 
-ahk_script = project_folder / "Downloader.ahk"
-ahk_shortcut = startup_folder / "downloader.ahk.lnk"
+downloader_ahk = project_folder / "Downloader.ahk"
+downloader_shortcut = startup_folder / "downloader.ahk.lnk"
 if ahk_v1_path.exists():
-    create_shortcut(str(ahk_v1_path), f'"{ahk_script}"', ahk_shortcut, run_minimized=False)
+    create_shortcut(str(ahk_v1_path), f'"{downloader_ahk}"', downloader_shortcut, run_minimized=False)
 else:
-    print("AutoHotkey.exe not found. Cannot create Downloader.ahk shortcut.")
+    print("AutoHotkey v1 not found. Cannot create Downloader.ahk shortcut.")
 
 print("Setup complete!")
