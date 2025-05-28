@@ -87,28 +87,29 @@ def find_ahk_exe():
             return path
     return None
 
-ahk_exe_path = find_ahk_exe()
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
 print(f"Created or verified file: {ytlink_path}")
 
+ahk_exe_path = find_ahk_exe()
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
+
 if not ahk_exe_path:
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
         run_installer(ahk_installer)
+        ahk_exe_path = find_ahk_exe()
     else:
         print("Failed to download AutoHotkey installer. Please install manually.")
 
-if not ahk_v1_path.exists():
-    if install_ahk_script.exists():
-        if ahk_exe_path:
-            print(f"Running AHK install script: {install_ahk_script}")
-            subprocess.run([str(ahk_exe_path), str(install_ahk_script)], check=False)
-            print("AHK install script completed successfully.")
-        else:
-            print("AutoHotkey v2 is not found. Cannot run install.ahk.")
+if not ahk_v1_path.exists() and ahk_exe_path and install_ahk_script.exists():
+    print(f"Running AHK install script: {install_ahk_script}")
+    try:
+        subprocess.run([str(ahk_exe_path), str(install_ahk_script)], check=False)
+        print("AHK install script completed successfully.")
+    except FileNotFoundError as e:
+        print(f"Error running install script: {e}")
 
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
