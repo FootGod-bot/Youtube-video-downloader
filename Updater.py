@@ -8,7 +8,6 @@ import winreg
 import sys
 import pythoncom
 import win32com.client
-import socket
 
 print("== Yt-dlp Installer ==")
 
@@ -24,18 +23,14 @@ files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
 ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
 
-def download_file(url, dest, retries=3, timeout=15):
-    for attempt in range(retries):
-        try:
-            # Simple timeout socket wrapper for urlretrieve
-            socket.setdefaulttimeout(timeout)
-            urlretrieve(url, dest)
-            print(f"Downloaded {os.path.basename(dest)}")
-            return True
-        except Exception as e:
-            print(f"Failed to download {url} (attempt {attempt+1}/{retries}): {e}")
-            time.sleep(2)
-    return False
+def download_file(url, dest):
+    try:
+        urlretrieve(url, dest)
+        print(f"Downloaded {os.path.basename(dest)}")
+        return True
+    except Exception as e:
+        print(f"Failed to download {url}: {e}")
+        return False
 
 def run_installer(installer_path):
     print("Running AutoHotkey installer...")
@@ -66,10 +61,8 @@ def add_to_user_path(new_path):
         print(f"{new_path} already in user PATH.")
 
 def ahk_installed():
-    # Check for AutoHotkey.exe or AutoHotkey64.exe anywhere in PATH
-    for path in os.environ.get("PATH", "").split(";"):
-        p = Path(path.strip('"'))
-        if (p / "AutoHotkey.exe").exists() or (p / "AutoHotkey64.exe").exists():
+    for path in os.environ["PATH"].split(";"):
+        if (Path(path.strip('"')) / "AutoHotkey.exe").exists():
             return True
     return False
 
@@ -135,11 +128,11 @@ if ffmpeg_dir.exists():
 if not skip_ffmpeg:
     ffmpeg_dir.mkdir(exist_ok=True)
     if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_zip):
-        print("Please extract ffmpeg-git-full.7z manually to C:/ffmpeg folder (e.g. using 7-Zip).")
+        print("Please extract ffmpeg-git-full.7z to C:/ffmpeg")
         subprocess.run(f'explorer "{ffmpeg_dir}"')
         yn = input("Have you extracted it? (y/n): ").strip().lower()
         if yn == "y":
-            target_bin = ffmpeg_dir / "ffmpeg-git-full" / "ffmpeg-2025-05-26-git-43a69886b2-full_build" / "bin"
+            target_bin = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
             if target_bin.exists():
                 add_to_user_path(str(target_bin))
             else:
@@ -161,11 +154,38 @@ try:
 except Exception as e:
     print(f"Failed to download updater.py: {e}")
 
+# --- NEW PART: Run the AHK install-version.ahk and wait for it ---
+ahk_install_script = user_profile / "AppData" / "Local" / "Programs" / "AutoHotkey" / "UX" / "install-version.ahk"
+
+if ahk_install_script.exists():
+    print(f"Running AHK install script: {ahk_install_script}")
+    # Find AutoHotkey Dash exe to run the script
+    ahk_exe = None
+    dash_paths = [
+        user_profile / "AppData" / "Local" / "Programs" / "AutoHotkey" / "UX" / "AutoHotkeyUX.exe",
+        Path(r"C:\Program Files\AutoHotkey\UX\AutoHotkeyUX.exe"),
+        Path(r"C:\Program Files (x86)\AutoHotkey\UX\AutoHotkeyUX.exe"),
+    ]
+    for path in dash_paths:
+        if path.exists():
+            ahk_exe = path
+            break
+    if not ahk_exe:
+        ahk_exe = "AutoHotkey.exe"  # fallback
+
+    proc = subprocess.run([str(ahk_exe), str(ahk_install_script)])
+    if proc.returncode == 0:
+        print("AHK install script completed successfully.")
+    else:
+        print(f"AHK install script exited with code {proc.returncode}")
+else:
+    print(f"AHK install script not found at {ahk_install_script}, skipping.")
+
 # 6. Setup startup shortcuts for ytlinkserver.py and Downloader.ahk
 
 startup_folder = Path(os.getenv('APPDATA')) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
 
-# Remove any existing shortcuts for these apps
+# Remove existing shortcuts if any
 for shortcut_name in ["ytlinkserver.lnk", "downloader.ahk.lnk"]:
     shortcut_path = startup_folder / shortcut_name
     if shortcut_path.exists():
@@ -175,7 +195,7 @@ for shortcut_name in ["ytlinkserver.lnk", "downloader.ahk.lnk"]:
         except Exception as e:
             print(f"Could not delete existing shortcut {shortcut_name}: {e}")
 
-# Create shortcut for ytlinkserver.py (runs in new cmd window)
+# Shortcut for ytlinkserver.py (run in new cmd window)
 python_exe = sys.executable
 ytlinkserver_script = project_folder / "ytlinkserver.py"
 ytlinkserver_shortcut = startup_folder / "ytlinkserver.lnk"
@@ -187,37 +207,24 @@ create_shortcut(
     run_minimized=False
 )
 
-# Create shortcut for Downloader.ahk (run as double click)
+# Shortcut for Downloader.ahk (run as double click)
 
-# Find AutoHotkey.exe in PATH or default locations
+# Find AutoHotkey Dash exe path again for shortcut target
 ahk_exe_path = None
-for p in os.environ.get("PATH", "").split(";"):
+for p in os.environ["PATH"].split(";"):
     potential = Path(p.strip('"')) / "AutoHotkey.exe"
-    potential64 = Path(p.strip('"')) / "AutoHotkey64.exe"
     if potential.exists():
         ahk_exe_path = potential
         break
-    if potential64.exists():
-        ahk_exe_path = potential64
-        break
 
 if not ahk_exe_path:
-    default_paths = [
-        Path(r"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe"),
-        Path(r"C:\Program Files\AutoHotkey\v1.1.37.02\AutoHotkey64.exe"),
-        Path(r"C:\Program Files (x86)\AutoHotkey\v2\AutoHotkey64.exe"),
-        Path(r"C:\Program Files (x86)\AutoHotkey\v1.1.37.02\AutoHotkey64.exe"),
-        user_profile / "AppData" / "Local" / "Programs" / "AutoHotkey" / "v1.1.37.02" / "AutoHotkeyU64.exe",
-        user_profile / "AppData" / "Local" / "Programs" / "AutoHotkey" / "v2" / "AutoHotkey64.exe",
-    ]
-    for p in default_paths:
-        if p.exists():
-            ahk_exe_path = p
-            break
+    # fallback to dash exe path checked earlier
+    ahk_exe_path = ahk_exe if isinstance(ahk_exe, Path) else None
 
-if ahk_exe_path:
-    downloader_ahk = project_folder / "Downloader.ahk"
-    downloader_shortcut = startup_folder / "downloader.ahk.lnk"
+downloader_ahk = project_folder / "Downloader.ahk"
+downloader_shortcut = startup_folder / "downloader.ahk.lnk"
+
+if ahk_exe_path and downloader_ahk.exists():
     create_shortcut(
         target=ahk_exe_path,
         arguments=f'"{downloader_ahk}"',
@@ -225,16 +232,22 @@ if ahk_exe_path:
         run_minimized=True
     )
 else:
-    print("Could not find AutoHotkey executable for shortcut creation.")
+    print("Cannot create downloader shortcut; AutoHotkey executable or Downloader.ahk not found.")
 
-# 7. Delete this updater script after a short delay (only if __file__ is defined)
-if '__file__' in globals():
-    print("Updater will self-delete in 3 seconds...")
-    time.sleep(3)
-    try:
-        Path(__file__).unlink()
-        print("Updater script deleted.")
-    except Exception as e:
-        print(f"Could not delete updater script: {e}")
+# 7. Self-delete the installer script after running
+installer_path = Path(__file__)
+try:
+    print(f"Deleting installer script: {installer_path}")
+    # On Windows you cannot delete running script; create a batch file to delete it on exit
+    bat_path = installer_path.with_suffix('.bat')
+    with open(bat_path, "w") as f:
+        f.write(f"""@echo off
+timeout /t 2 /nobreak >nul
+del "{installer_path}"
+del "%~f0"
+""")
+    subprocess.Popen([str(bat_path)], shell=True)
+except Exception as e:
+    print(f"Failed to delete installer script automatically: {e}")
 
-print("Setup complete.")
+print("Setup complete!")
