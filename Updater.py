@@ -6,20 +6,16 @@ from pathlib import Path
 from urllib.request import urlretrieve
 import winreg
 import sys
-import pythoncom
-import win32com.client
 
 print("== Yt-dlp Installer ==")
 
-# Auto detect user folders
 user_profile = Path.home()
+startup_folder = user_profile / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
 project_folder = user_profile / "Yt-dlp downloader"
 ext_dir = project_folder / "extension_files"
 yt_dlp_dir = Path("C:/yt-dlp")
 ffmpeg_dir = Path("C:/ffmpeg")
 ytlink_path = user_profile / "OneDrive" / "Documentos" / "ytlink.txt"
-startup_dir = Path(os.getenv("APPDATA")) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
-rbtray_dir = project_folder / "RBTray"
 repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/refs/heads/main"
 
 files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
@@ -69,36 +65,28 @@ def ahk_installed():
             return True
     return False
 
-def create_shortcut(target, shortcut_name):
-    lnk_path = startup_dir / f"{shortcut_name}.lnk"
-    if lnk_path.exists():
-        try:
-            lnk_path.unlink()
-            print(f"Removed existing shortcut: {shortcut_name}.lnk")
-        except Exception as e:
-            print(f"Failed to remove old shortcut: {e}")
-    try:
-        pythoncom.CoInitialize()
-        shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(str(lnk_path))
-        shortcut.TargetPath = str(target)
-        shortcut.WorkingDirectory = str(target.parent)
-        if shortcut_name == "Server":
-            shortcut.Arguments = f'/c start python "{target}"'
-            shortcut.TargetPath = "cmd.exe"
-        shortcut.save()
-        print(f"Shortcut created: {shortcut_name}.lnk")
-    except Exception as e:
-        print(f"Failed to create shortcut: {e}")
+def create_shortcut(target, name, args=None, run_new_window=False):
+    import pythoncom
+    from win32com.client import Dispatch
+    shell = Dispatch("WScript.Shell")
+    shortcut = shell.CreateShortCut(str(startup_folder / f"{name}.lnk"))
+    shortcut.TargetPath = str(target)
+    shortcut.WorkingDirectory = str(target.parent)
+    if args:
+        shortcut.Arguments = args
+    if run_new_window:
+        shortcut.IconLocation = "cmd.exe"
+    shortcut.save()
+    print(f"Shortcut created: {name}.lnk")
 
-# Setup folders
+# Make folders
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
+startup_folder.mkdir(parents=True, exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
-rbtray_dir.mkdir(parents=True, exist_ok=True)
 
-# 1. AHK
+# 1. AutoHotkey
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_installed():
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
@@ -108,7 +96,7 @@ if not ahk_installed():
 else:
     print("AutoHotkey already installed.")
 
-# 2. Download scripts
+# 2. Download files
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
 for file in extension_files:
@@ -130,7 +118,7 @@ if not skip_yt_dlp:
     if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
         add_to_user_path(str(yt_dlp_dir))
 
-# 4. FFmpeg
+# 4. ffmpeg
 skip_ffmpeg = False
 if ffmpeg_dir.exists():
     confirm = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
@@ -160,36 +148,30 @@ if not skip_ffmpeg:
     else:
         print("Failed to download FFmpeg archive.")
 
-# 5. Download RBTray
-rbtray_files = {
-    "RBTray.exe": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBTray.exe",
-    "RBHook.dll": "https://raw.githubusercontent.com/benbuck/rbtray/main/x64/RBHook.dll"
-}
-for filename, url in rbtray_files.items():
-    dest_path = rbtray_dir / filename
-    download_file(url, dest_path)
+# 5. Add startup shortcuts
+for f in startup_folder.glob("*.lnk"):
+    if f.stem in ["Download AHK", "Ytlink Server"]:
+        f.unlink()
+
+# AHK script shortcut
+create_shortcut(project_folder / "Downloader.ahk", "Download AHK")
+
+# ytlinkserver shortcut (in new window)
+create_shortcut(Path(sys.executable), "Ytlink Server", f'"{project_folder / "ytlinkserver.py"}"', run_new_window=True)
 
 # 6. Download updater.py
 try:
-    updater_url = f"{repo_base}/Updater.py"
     updater_path = user_profile / "updater.py"
-    urlretrieve(updater_url, updater_path)
+    urlretrieve(f"{repo_base}/Updater.py", updater_path)
     print(f"Downloaded updater.py to: {updater_path}")
 except Exception as e:
     print(f"Failed to download updater.py: {e}")
 
-# 7. Add shortcuts to startup
-create_shortcut(rbtray_dir / "RBTray.exe", "RBTray")
-create_shortcut(project_folder / "ytlinkserver.py", "Server")
-create_shortcut(project_folder / "Downloader.ahk", "Download AHK")
-
-# 8. Delete self if named install.py
-script_path = Path(__file__)
-if script_path.name.lower() == "install.py":
-    try:
-        os.remove(script_path)
-        print("Deleted install.py")
-    except Exception as e:
-        print(f"Could not delete install.py: {e}")
+# 7. Delete self
+try:
+    Path(__file__).unlink()
+    print("Deleted install.py")
+except Exception as e:
+    print(f"Could not delete install.py: {e}")
 
 print("Update complete!")
