@@ -74,12 +74,8 @@ def create_shortcut(target, arguments, shortcut_path, run_minimized=True):
 def find_ahk_exe():
     paths = [
         user_profile / "AppData/Local/Programs/AutoHotkey/UX/AutoHotkeyUX.exe",
-        user_profile / "AppData/Local/Programs/AutoHotkey/v2/AutoHotkey64.exe",
-        user_profile / "AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe",
-        Path("C:/Program Files/AutoHotkey/v2/AutoHotkey64.exe"),
-        Path("C:/Program Files/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe"),
-        Path("C:/Program Files (x86)/AutoHotkey/v2/AutoHotkey64.exe"),
-        Path("C:/Program Files (x86)/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe")
+        Path("C:/Program Files/AutoHotkey/UX/AutoHotkeyUX.exe"),
+        Path("C:/Program Files (x86)/AutoHotkey/UX/AutoHotkeyUX.exe"),
     ]
     for path in paths:
         if path.exists():
@@ -94,7 +90,6 @@ ext_dir.mkdir(exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
 
-# 1. Install AutoHotkey if not found
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_exe_path:
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
@@ -104,13 +99,11 @@ if not ahk_exe_path:
 else:
     print("AutoHotkey already installed.")
 
-# 2. Download files
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
 for file in extension_files:
     download_file(f"{repo_base}/{file}", ext_dir / file)
 
-# 3. yt-dlp
 skip_yt_dlp = False
 if yt_dlp_dir.exists():
     confirm = input("yt-dlp folder exists. Update it? (y/n): ").strip().lower()
@@ -126,7 +119,6 @@ if not skip_yt_dlp:
     if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
         add_to_user_path(str(yt_dlp_dir))
 
-# 4. FFmpeg
 skip_ffmpeg = False
 if ffmpeg_dir.exists():
     confirm = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
@@ -152,7 +144,6 @@ if not skip_ffmpeg:
         except Exception as e:
             print(f"Couldn't delete FFmpeg archive: {e}")
 
-# 5. Run AHK UX version install script if needed
 if ahk_exe_path and not skip_user_script:
     ahk_user_script = user_profile / "AppData/Local/Programs/AutoHotkey/UX/install-version.ahk"
     if ahk_user_script.exists():
@@ -160,7 +151,6 @@ if ahk_exe_path and not skip_user_script:
         subprocess.run([str(ahk_exe_path), str(ahk_user_script)], check=False)
         print("AHK install script completed successfully.")
 
-# 6. Setup startup shortcuts
 startup_folder = Path(os.getenv('APPDATA')) / "Microsoft/Windows/Start Menu/Programs/Startup"
 for shortcut_name in ["ytlinkserver.lnk", "downloader.ahk.lnk"]:
     shortcut_path = startup_folder / shortcut_name
@@ -171,13 +161,11 @@ for shortcut_name in ["ytlinkserver.lnk", "downloader.ahk.lnk"]:
         except Exception as e:
             print(f"Could not delete existing shortcut {shortcut_name}: {e}")
 
-# ytlinkserver.py shortcut
 python_exe = sys.executable
 ytlinkserver_script = project_folder / "ytlinkserver.py"
 ytlinkserver_shortcut = startup_folder / "ytlinkserver.lnk"
 create_shortcut("cmd.exe", f'/c start "" "{python_exe}" "{ytlinkserver_script}"', ytlinkserver_shortcut, run_minimized=False)
 
-# Downloader.ahk shortcut
 ahk_script = project_folder / "Downloader.ahk"
 ahk_shortcut = startup_folder / "downloader.ahk.lnk"
 if ahk_exe_path:
