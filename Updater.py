@@ -5,13 +5,13 @@ import shutil
 from pathlib import Path
 from urllib.request import urlretrieve
 import winreg
+import sys
 
 print("== Yt-dlp Installer ==")
 
-# Define key paths
+# Auto detect user folders
 user_profile = Path.home()
-project_folder = user_profile / "Yt-dlp downloader"
-startup_dir = user_profile / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+project_folder = user_profile / "Yt-dlp_downloader"  # No spaces here
 ext_dir = project_folder / "extension_files"
 yt_dlp_dir = Path("C:/yt-dlp")
 ffmpeg_dir = Path("C:/ffmpeg")
@@ -32,15 +32,16 @@ def download_file(url, dest):
         return False
 
 def run_installer(installer_path):
-    print("Running AutoHotkey installer...")
+    print("Running AutoHotkey installer, please complete installation...")
     subprocess.run([str(installer_path)], check=False)
     print("Installer finished.")
-    for _ in range(5):
+    for attempt in range(5):
         try:
             installer_path.unlink()
             print("Deleted installer.")
             break
-        except:
+        except Exception as e:
+            print(f"Could not delete installer, retrying... ({e})")
             time.sleep(1)
 
 def add_to_user_path(new_path):
@@ -53,7 +54,8 @@ def add_to_user_path(new_path):
         updated_path = existing_path + ";" + new_path if existing_path else new_path
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment', 0, winreg.KEY_SET_VALUE) as key:
             winreg.SetValueEx(key, "PATH", 0, winreg.REG_EXPAND_SZ, updated_path)
-        print(f"Added {new_path} to PATH. Restart/log off to apply.")
+        print(f"Added {new_path} to user PATH.")
+        print("Log off or restart to apply PATH changes.")
     else:
         print(f"{new_path} already in user PATH.")
 
@@ -63,52 +65,48 @@ def ahk_installed():
             return True
     return False
 
-def create_shortcut(name, target, args="", working_dir=""):
-    path = startup_dir / f"{name}.lnk"
-    if path.exists():
-        try:
-            path.unlink()
-        except:
-            print(f"Could not delete existing shortcut: {path}")
+def create_shortcut(target, arguments, shortcut_path, working_dir=None, run_minimized=False):
+    import pythoncom
+    from win32com.shell import shell, shellcon
+    from win32com.client import Dispatch
+    
+    # Delete existing shortcut if exists
+    if shortcut_path.exists():
+        shortcut_path.unlink()
+    
+    shell_link = Dispatch('WScript.Shell').CreateShortcut(str(shortcut_path))
+    shell_link.TargetPath = str(target)
+    shell_link.Arguments = arguments
+    if working_dir:
+        shell_link.WorkingDirectory = str(working_dir)
+    if run_minimized:
+        shell_link.WindowStyle = 7  # Minimized
+    shell_link.save()
+    print(f"Shortcut created: {shortcut_path.name}")
 
-    target = str(target).replace('"', '""')
-    args = args.replace('"', '""')
-    working_dir = str(working_dir or os.path.dirname(target)).replace('"', '""')
-
-    script = f'''
-$WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("{path}")
-$Shortcut.TargetPath = "{target}"
-$Shortcut.Arguments = "{args}"
-$Shortcut.WorkingDirectory = "{working_dir}"
-$Shortcut.Save()
-'''
-    subprocess.run(["powershell", "-NoProfile", "-Command", script])
-
-# Create directories
+# Prepare folders
 project_folder.mkdir(parents=True, exist_ok=True)
 ext_dir.mkdir(exist_ok=True)
 ytlink_path.parent.mkdir(parents=True, exist_ok=True)
 ytlink_path.touch(exist_ok=True)
-startup_dir.mkdir(parents=True, exist_ok=True)
 
-# 1. AHK
+# 1. AutoHotkey
 ahk_installer = project_folder / "AutoHotkey_Installer.exe"
 if not ahk_installed():
     if download_file("https://www.autohotkey.com/download/ahk-v2.exe", ahk_installer):
         run_installer(ahk_installer)
     else:
-        print("AutoHotkey installer failed.")
+        print("Failed to download AutoHotkey installer. Please install manually.")
+else:
+    print("AutoHotkey already installed.")
 
-# 2. Downloader + Server + Readme
+# 2. Download scripts
 for file in files:
     download_file(f"{repo_base}/{file}", project_folder / file)
-
-# 3. Extension files
 for file in extension_files:
     download_file(f"{repo_base}/{file}", ext_dir / file)
 
-# 4. yt-dlp
+# 3. yt-dlp
 skip_yt_dlp = False
 if yt_dlp_dir.exists():
     confirm = input("yt-dlp folder exists. Update it? (y/n): ").strip().lower()
@@ -120,10 +118,11 @@ if yt_dlp_dir.exists():
 
 if not skip_yt_dlp:
     yt_dlp_dir.mkdir(exist_ok=True)
-    if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_dir / "yt-dlp.exe"):
+    yt_dlp_path = yt_dlp_dir / "yt-dlp.exe"
+    if download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path):
         add_to_user_path(str(yt_dlp_dir))
 
-# 5. FFmpeg
+# 4. FFmpeg
 skip_ffmpeg = False
 if ffmpeg_dir.exists():
     confirm = input("FFmpeg folder exists. Update it? (y/n): ").strip().lower()
@@ -136,43 +135,81 @@ if ffmpeg_dir.exists():
 if not skip_ffmpeg:
     ffmpeg_dir.mkdir(exist_ok=True)
     if download_file("https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z", ffmpeg_zip):
-        print("Extract ffmpeg-git-full.7z to C:/ffmpeg")
+        print("Please extract ffmpeg-git-full.7z to C:/ffmpeg")
         subprocess.run(f'explorer "{ffmpeg_dir}"')
         yn = input("Have you extracted it? (y/n): ").strip().lower()
         if yn == "y":
             target_bin = Path("C:/ffmpeg/ffmpeg-git-full/ffmpeg-2025-05-26-git-43a69886b2-full_build/bin")
             if target_bin.exists():
                 add_to_user_path(str(target_bin))
+            else:
+                print("Could not find expected bin folder at:", target_bin)
         try:
             ffmpeg_zip.unlink()
-        except: pass
+            print("Deleted FFmpeg archive.")
+        except Exception as e:
+            print(f"Couldn't delete FFmpeg archive: {e}")
+    else:
+        print("Failed to download FFmpeg archive.")
 
-# 6. updater.py
-updater_path = user_profile / "updater.py"
-if download_file(f"{repo_base}/Updater.py", updater_path):
-    print(f"Downloaded updater.py to {updater_path}")
-
-# 7. Shortcuts to Startup
-create_shortcut(
-    "Ytlink Server",
-    "cmd.exe",
-    f'/c start "" python "{project_folder / "ytlinkserver.py"}"',
-    str(project_folder)
-)
-
-create_shortcut(
-    "Download AHK",
-    str(project_folder / "Downloader.ahk"),
-    "",
-    str(project_folder)
-)
-
-# 8. Delete self if named install.py
+# 5. Download updater.py
 try:
-    script_path = Path(__file__)
-    script_path.unlink()
-    print("Deleted installer script.")
+    updater_url = f"{repo_base}/Updater.py"
+    updater_path = user_profile / "updater.py"
+    urlretrieve(updater_url, updater_path)
+    print(f"Downloaded updater.py to: {updater_path}")
 except Exception as e:
-    print(f"Could not delete self: {e}")
+    print(f"Failed to download updater.py: {e}")
+
+# 6. Create startup shortcuts for server and ahk script
+startup_folder = Path(os.getenv('APPDATA')) / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+
+# Delete old shortcuts if exist
+for shortcut_name in ["ytlinkserver.lnk", "downloader.ahk.lnk"]:
+    shortcut_file = startup_folder / shortcut_name
+    if shortcut_file.exists():
+        shortcut_file.unlink()
+        print(f"Deleted old shortcut: {shortcut_name}")
+
+# Shortcut for ytlinkserver.py (open in new cmd window)
+python_exe = sys.executable
+server_script = project_folder / "ytlinkserver.py"
+shortcut_server = startup_folder / "ytlinkserver.lnk"
+create_shortcut(
+    target="cmd.exe",
+    arguments=f'/c start "" "{python_exe}" "{server_script}"',
+    shortcut_path=shortcut_server,
+    run_minimized=False
+)
+
+# Shortcut for Downloader.ahk (run like double click)
+ahk_exe_path = None
+# Find AutoHotkey.exe in PATH
+for p in os.environ["PATH"].split(";"):
+    potential = Path(p.strip('"')) / "AutoHotkey.exe"
+    if potential.exists():
+        ahk_exe_path = potential
+        break
+
+if ahk_exe_path:
+    ahk_script = project_folder / "Downloader.ahk"
+    shortcut_ahk = startup_folder / "downloader.ahk.lnk"
+    create_shortcut(
+        target=ahk_exe_path,
+        arguments=f'"{ahk_script}"',
+        shortcut_path=shortcut_ahk,
+        run_minimized=False
+    )
+else:
+    print("AutoHotkey.exe not found in PATH. Cannot create AHK shortcut.")
+
+# 7. Delete self if named install.py or updater.py
+script_path = Path(__file__)
+if script_path.name.lower() in ("install.py", "updater.py"):
+    try:
+        os.remove(script_path)
+        print(f"Deleted {script_path.name}")
+    except Exception as e:
+        print(f"Could not delete {script_path.name}: {e}")
 
 print("Update complete!")
