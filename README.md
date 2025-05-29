@@ -27,6 +27,8 @@ Download yt-dlp, FFmpeg, and browser extension files
 Set up folders and scripts
 
 Create startup shortcuts for:
+ocptional: get rbtray:
+https://github.com/benbuck/rbtray/tree/main
 
 Downloader.ahk
 
