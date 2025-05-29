@@ -11,7 +11,7 @@ IMPORTANT: On the install screen, check the box that says "Add Python to PATH", 
 📦 2. Install Python packages
 Open Command Prompt and run:
 
-pip install pywin32 flask
+pip install pywin32 flask flask-cors
 
 📥 3. Download the installer script
 If you haven’t already, save your install.py file into your user folder.
