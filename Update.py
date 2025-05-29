@@ -16,7 +16,7 @@ project_folder = user_profile / "Yt-dlp_downloader"
 ext_dir = project_folder / "extension_files"
 yt_dlp_dir = Path("C:/yt-dlp")
 ffmpeg_dir = Path("C:/ffmpeg")
-ytlink_path = Path("C:/Users/aiden/Documents/ytlink.txt")
+ytlink_path = user_profile / "Documents/ytlink.txt"
 repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main"
 
 files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
