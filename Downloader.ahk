@@ -2,7 +2,7 @@
 #Persistent
 
 askDownload := "yes"  ; Change to "no" to skip asking
-downloadFolder := "C:\Users\" . A_UserName . "\Videos\youtube"  ; Change this path to whatever you want
+downloadFolder := "C:\Users\" . A_UserName . "\Videos"  ; Change this path to wherever you want the file to save to.
 
 SetTimer, CheckForNewLink, 1000
 return
