@@ -12,7 +12,6 @@ SetTimer, CheckForChanges, 1000
 return
 
 CheckForChanges:
-{
     FileRead, newContent, % "C:\Users\" . userPath . "\Documents\ytlink.txt"
     if (newContent != lastContent) {
         lastContent := newContent
@@ -37,5 +36,4 @@ CheckForChanges:
             }
         }
     }
-}
-
+return
