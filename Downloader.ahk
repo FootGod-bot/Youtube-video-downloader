@@ -4,7 +4,7 @@
 ; === Variables ===
 askDownload := "yes"
 userPath := A_UserName  ; Auto-detect user folder
-savePath := "C:\Users\" . userPath . "\Videos\YouTube"
+savePath := "C:\\Users\\" . userPath . "\\Videos\\YouTube"
 
 ; === Watch ytlink.txt for changes ===
 lastContent := ""
@@ -12,7 +12,7 @@ SetTimer, CheckForChanges, 1000
 return
 
 CheckForChanges:
-    FileRead, newContent, % "C:\Users\" . userPath . "\Documents\ytlink.txt"
+    FileRead, newContent, % "C:\\Users\\" . userPath . "\\Documents\\ytlink.txt"
     if (newContent != lastContent) {
         lastContent := newContent
         SetTimer, CheckForChanges, Off  ; Stop watching once change is detected
