@@ -4,6 +4,7 @@
 askDownload := "yes"  ; y/yes to ask, n/no to skip prompt
 userPath := A_UserName
 savePath := "C:\\Users\\" . userPath . "\\Videos\\YouTube"
+ytDlpPath := "C:\\yt-dlp\\yt-dlp.exe"
 lastContent := ""
 showConsole := "no"  ; y/yes to show command window, n/no to hide
 
@@ -17,31 +18,36 @@ if (newContent != lastContent) {
     SetTimer, CheckForChanges, Off
 
     if (askDownload ~= "^(no|n)$") {
-        goto StartDownload
+        Gosub, StartDownload
+        return
     } else if (askDownload ~= "^(yes|y)$") {
         MsgBox, 4, New Link Detected, New link detected:`n%newContent%`nDownload it?
         IfMsgBox, No
             return
-    } else {
-        return
+        Gosub, StartDownload
     }
+}
+return
 
-    StartDownload:
-    if (!FileExist(savePath)) {
-        MsgBox, 16, Error, Save path does not exist:`n%savePath%
-        return
-    }
+StartDownload:
+if (!FileExist(savePath)) {
+    MsgBox, 16, Error, Save path does not exist:`n%savePath%
+    return
+}
 
+if (showConsole ~= "^(yes|y)$") {
     cmd =
     (
-%ComSpec% /c pushd "%savePath%" && yt-dlp "%newContent%" && popd
+%ComSpec% /k pushd "%savePath%" && "%ytDlpPath%" "%newContent%" && popd
     )
-    if (showConsole ~= "^(yes|y)$") {
-        RunWait, %cmd%
-    } else {
-        RunWait, %cmd%, , Hide
-    }
-
-    Run, %savePath%
+    RunWait, %cmd%
+} else {
+    cmd =
+    (
+%ComSpec% /c pushd "%savePath%" && "%ytDlpPath%" "%newContent%" && popd
+    )
+    RunWait, %cmd%, , Hide
 }
+
+Run, %savePath%
 return
