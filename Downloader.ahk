@@ -1,37 +1,30 @@
 #Requires AutoHotkey v1.1
 #Persistent
 
-askDownload := "yes"  ; Change to "no" to skip asking
-downloadFolder := "C:\Users\" . A_UserName . "\Videos"  ; Change this path to wherever you want the file to save to.
+; === Variables ===
+askDownload := "yes"
+userPath := A_UserName  ; Auto-detect user folder
+savePath := "C:\Users\" . userPath . "\Videos\YouTube"
 
-SetTimer, CheckForNewLink, 1000
+; === Watch ytlink.txt for changes ===
+lastContent := ""
+SetTimer, CheckForChanges, 1000
 return
 
-CheckForNewLink:
-    FileRead, link, C:\Users\aiden\Documents\ytlink.txt
-    if (link != "" && link != lastLink) {
-        lastLink := link
+CheckForChanges:
+{
+    FileRead, newContent, % "C:\Users\" . userPath . "\Documents\ytlink.txt"
+    if (newContent != lastContent) {
+        lastContent := newContent
+        SetTimer, CheckForChanges, Off  ; Stop watching once change is detected
 
-        if (askDownload = "yes") {
-            MsgBox, 4,, YouTube link detected:`n%link%`nDownload it?
+        ; Check if askDownload is yes or y
+        if (askDownload = "yes" || askDownload = "y") {
+            MsgBox, 4, New Link Detected, New link detected:`n%newContent%`nDownload it?
             IfMsgBox, Yes
             {
-                fullCommand := "cmd.exe /c cd /d """ . downloadFolder . """ && yt-dlp """ . link . """"
-                RunWait, %fullCommand%
+                ; Continue with download logic here
             }
-            ; If No, skip download
         }
-        else
-        {
-            fullCommand := "cmd.exe /c cd /d """ . downloadFolder . """ && yt-dlp """ . link . """"
-            RunWait, %fullCommand%
-        }
-
-        ; Clear the file at the end
-        FileDelete, C:\Users\aiden\Documents\ytlink.txt
-        FileAppend,, C:\Users\aiden\Documents\ytlink.txt
-
-        ; Open the download folder in Explorer
-        Run, explorer.exe "%downloadFolder%"
     }
-return
+}
