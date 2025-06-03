@@ -5,6 +5,7 @@ askDownload := "yes"  ; y/yes to ask, n/no to skip prompt
 userPath := A_UserName
 savePath := "C:\\Users\\" . userPath . "\\Videos\\YouTube"
 ytDlpPath := "C:\\yt-dlp\\yt-dlp.exe"
+ffmpegPath := "C:\\ffmpeg\\ffmpeg-git-full\\ffmpeg-2025-06-02-git-688f3944ce-full_build\\bin"
 lastContent := ""
 showConsole := "no"  ; y/yes to show command window, n/no to hide
 
@@ -35,17 +36,13 @@ if (!FileExist(savePath)) {
     return
 }
 
+cmdLine := "set PATH=" . ffmpegPath . ";%PATH% && """ . ytDlpPath . """ """ . newContent . """"
+
 if (showConsole ~= "^(yes|y)$") {
-    cmd =
-    (
-%ComSpec% /k pushd "%savePath%" && "%ytDlpPath%" "%newContent%" && popd
-    )
+    cmd := ComSpec . " /k pushd """ . savePath . """ && " . cmdLine . " && popd"
     RunWait, %cmd%
 } else {
-    cmd =
-    (
-%ComSpec% /c pushd "%savePath%" && "%ytDlpPath%" "%newContent%" && popd
-    )
+    cmd := ComSpec . " /c pushd """ . savePath . """ && " . cmdLine . " && popd"
     RunWait, %cmd%, , Hide
 }
 
