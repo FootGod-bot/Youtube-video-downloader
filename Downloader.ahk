@@ -23,8 +23,19 @@ CheckForChanges:
             MsgBox, 4, New Link Detected, New link detected:`n%newContent%`nDownload it?
             IfMsgBox, Yes
             {
-                ; Continue with download logic here
+                ; Check if savePath exists
+                if (!FileExist(savePath)) {
+                    MsgBox, 16, Error, Save path does not exist:`n%savePath%
+                    return
+                }
+                ; Run yt-dlp with the link in the savePath directory (hidden)
+                cmd := "cmd.exe /c cd /d \"" . savePath . "\" && yt-dlp \"" . newContent . "\""
+                Run, %cmd%, , Hide
+
+                ; Open the savePath folder
+                Run, %savePath%
             }
         }
     }
 }
+
