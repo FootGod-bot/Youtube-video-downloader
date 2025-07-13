@@ -116,12 +116,21 @@ for file in files:
 for file in extension_files:
     download_file(f"{repo_base}/{file}", ext_dir / file)
 
+# Updated yt-dlp update logic
 skip_yt_dlp = False
 if yt_dlp_dir.exists():
     confirm = input("yt-dlp folder exists. Update it? (y/n): ").strip().lower()
     if confirm == "y":
-        shutil.rmtree(yt_dlp_dir)
-        print("yt-dlp folder removed.")
+        yt_dlp_path = yt_dlp_dir / "yt-dlp.exe"
+        if yt_dlp_path.exists():
+            print("Running yt-dlp -U to update...")
+            subprocess.run([str(yt_dlp_path), "-U"])
+        else:
+            print("yt-dlp.exe not found, downloading...")
+            shutil.rmtree(yt_dlp_dir)
+            yt_dlp_dir.mkdir(exist_ok=True)
+            download_file("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", yt_dlp_path)
+        skip_yt_dlp = True
     else:
         skip_yt_dlp = True
 
@@ -176,11 +185,14 @@ for shortcut_name in ["ytlinkserver.lnk", "downloader.ahk.lnk"]:
             print(f"Could not delete existing shortcut {shortcut_name}: {e}")
 
 python_exe = sys.executable
+
+# ytlinkserver shortcut
 ytlinkserver_script = project_folder / "ytlinkserver.py"
 ytlinkserver_shortcut = startup_folder / "ytlinkserver.lnk"
 create_shortcut("cmd.exe", f'/c start "" "{python_exe}" "{ytlinkserver_script}"', ytlinkserver_shortcut, run_minimized=False)
 run_shortcut(ytlinkserver_shortcut)
 
+# Downloader.ahk shortcut
 ahk_script = project_folder / "Downloader.ahk"
 ahk_shortcut = startup_folder / "downloader.ahk.lnk"
 if ahk_v1_path.exists():
@@ -188,5 +200,11 @@ if ahk_v1_path.exists():
     run_shortcut(ahk_shortcut)
 else:
     print("AutoHotkey.exe not found. Cannot create Downloader.ahk shortcut.")
+
+# Formater.py shortcut
+formater_script = project_folder / "Formater.py"
+formater_shortcut = startup_folder / "formater.lnk"
+create_shortcut("cmd.exe", f'/c start "" "{python_exe}" "{formater_script}"', formater_shortcut, run_minimized=False)
+run_shortcut(formater_shortcut)
 
 print("Setup complete!")
