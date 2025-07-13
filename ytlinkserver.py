@@ -13,36 +13,28 @@ def save_url():
         return "Missing URL", 400
 
     docs = os.path.join(os.path.expanduser("~"), "Documents")
-    ytlink_path = os.path.join(docs, "ytlink.txt")
     queue_limit = 50
 
-    # Check duplicates in ytlink.txt
-    if os.path.exists(ytlink_path):
-        with open(ytlink_path, "r", encoding="utf-8") as f:
-            if f.read().strip() == url:
-                return "Duplicate: already in ytlink.txt", 200
+    # Check all .txt and _temp.txt for duplicates
+    for i in range(queue_limit + 1):
+        base = "ytlink" if i == 0 else f"Queue{i}"
+        for suffix in ["", "_temp"]:
+            path = os.path.join(docs, f"{base}{suffix}.txt")
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    if f.read().strip() == url:
+                        return f"Duplicate: already in {base}{suffix}.txt", 200
 
-    # Check duplicates in queue files
-    for i in range(1, queue_limit + 1):
-        qfile = os.path.join(docs, f"Queue{i}.txt")
-        if os.path.exists(qfile):
-            with open(qfile, "r", encoding="utf-8") as f:
-                if f.read().strip() == url:
-                    return f"Duplicate: already in Queue{i}.txt", 200
+    # Write to first free _temp.txt file
+    for i in range(queue_limit + 1):
+        base = "ytlink" if i == 0 else f"Queue{i}"
+        final_path = os.path.join(docs, f"{base}.txt")
+        temp_path = os.path.join(docs, f"{base}_temp.txt")
 
-    # Write to ytlink.txt if missing or empty
-    if not os.path.exists(ytlink_path) or os.stat(ytlink_path).st_size == 0:
-        with open(ytlink_path, "w", encoding="utf-8") as f:
-            f.write(url)
-        return "Written to ytlink.txt", 200
-
-    # Otherwise, write to first free queue file
-    for i in range(1, queue_limit + 1):
-        qfile = os.path.join(docs, f"Queue{i}.txt")
-        if not os.path.exists(qfile):
-            with open(qfile, "w", encoding="utf-8") as f:
+        if not os.path.exists(final_path) and not os.path.exists(temp_path):
+            with open(temp_path, "w", encoding="utf-8") as f:
                 f.write(url)
-            return f"Queued to Queue{i}.txt", 200
+            return f"Written to {base}_temp.txt", 200
 
     return "Queue full", 429
 
