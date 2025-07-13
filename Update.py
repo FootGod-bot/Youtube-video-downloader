@@ -19,7 +19,7 @@ ffmpeg_dir = Path("C:/ffmpeg")
 ytlink_path = user_profile / "Documents/ytlink.txt"
 repo_base = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main"
 
-files = ["Downloader.ahk", "ytlinkserver.py", "README.md"]
+files = ["Downloader.ahk", "ytlinkserver.py", "README.md", "formater.py]
 extension_files = ["content.js", "icon128.png", "icon48.png", "manifest.json"]
 ffmpeg_zip = ffmpeg_dir / "ffmpeg-git-full.7z"
 ahk_v1_path = user_profile / "AppData/Local/Programs/AutoHotkey/v1.1.37.02/AutoHotkeyU64.exe"
