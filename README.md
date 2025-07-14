@@ -1,6 +1,6 @@
 🐍 1. Install Python (if not installed)
 Go here:
-https://www.python.org/downloads/windows
+https://www.python.org/downloads
 
 Download the Installer for your System.
 
