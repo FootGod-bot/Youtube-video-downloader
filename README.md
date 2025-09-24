@@ -13,6 +13,7 @@ Open Command Prompt and run:
 
 pip install pywin32 flask flask-cors
 
+#Note that if the command fail's, restart you pc or give the full python path
 📥 3. Download the installer script
 If you haven’t already, save your install.py file into your user folder.
 
