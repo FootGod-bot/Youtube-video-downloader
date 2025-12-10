@@ -2,7 +2,7 @@
 # YouTube Downloader Installer
 # ------------------------------
 
-# --- check for admin ---
+# --- admin check ---
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator")) {
     Write-Warning "You must run this installer as Administrator. Restarting with admin privileges..."
     Start-Process powershell "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
@@ -10,46 +10,47 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 }
 
 $installPath = "C:\Program Files\YouTube-Downloader"
-$startupPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
-
-# --- create install folder ---
-if (!(Test-Path $installPath)) {
-    New-Item -ItemType Directory -Path $installPath | Out-Null
-}
-
-# --- create extension subfolder ---
 $extPath = Join-Path $installPath "extension"
-if (!(Test-Path $extPath)) {
-    New-Item -ItemType Directory -Path $extPath | Out-Null
+$startupPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
+$wingetLinks = "$env:LocalAppData\Microsoft\WinGet\Links"
+
+# --- create folders ---
+foreach ($p in @($installPath, $extPath)) {
+    if (!(Test-Path $p)) { New-Item -ItemType Directory -Path $p | Out-Null }
 }
 
-# --- copy backend files ---
-$repoFiles = @(
-    "ytlinkserver.py",
-    "formatter.py",
-    "downloader.py",
-    "config.json"
-)
-foreach ($f in $repoFiles) {
-    if (Test-Path $f) {
-        Copy-Item $f $installPath -Force
-    }
+# --- GitHub raw file URLs ---
+$repoFiles = @{
+    "ytlinkserver.py" = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/ytlinkserver.py"
+    "formatter.py"    = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/formatter.py"
+    "downloader.py"   = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/downloader.py"
+    "config.json"     = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/config.json"
 }
 
-# --- copy extension files ---
-$extFiles = @(
-    "content.js",
-    "manifest.json",
-    "icon48.png",
-    "icon128.png"
-)
-foreach ($f in $extFiles) {
-    if (Test-Path $f) {
-        Copy-Item $f $extPath -Force
-    }
+$extFiles = @{
+    "content.js"      = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/extention_files/content.js"
+    "manifest.json"   = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/extention_files/manifest.json"
+    "icon48.png"      = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/extention_files/icon48.png"
+    "icon128.png"     = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/extention_files/icon128.png"
 }
 
-# --- install deps ---
+# --- download backend files ---
+foreach ($f in $repoFiles.Keys) {
+    $url = $repoFiles[$f]
+    $dest = Join-Path $installPath $f
+    Write-Host "Downloading $f..."
+    Invoke-WebRequest -Uri $url -OutFile $dest
+}
+
+# --- download extension files ---
+foreach ($f in $extFiles.Keys) {
+    $url = $extFiles[$f]
+    $dest = Join-Path $extPath $f
+    Write-Host "Downloading $f..."
+    Invoke-WebRequest -Uri $url -OutFile $dest
+}
+
+# --- install deps via winget ---
 Write-Host "Installing ffmpeg..."
 winget install --id Gyan.FFmpeg --silent
 
@@ -61,18 +62,14 @@ winget install --id yt-dlp.yt-dlp --silent
 
 # --- update SYSTEM PATH ---
 $systemPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
-$wingetLinks = "$env:LocalAppData\Microsoft\WinGet\Links"
-
-if ($systemPath -notlike "*$installPath*") {
-    $systemPath += ";$installPath"
+foreach ($p in @($installPath, $wingetLinks)) {
+    if ($systemPath -notlike "*$p*") {
+        $systemPath += ";$p"
+    }
 }
-if ($systemPath -notlike "*$wingetLinks*") {
-    $systemPath += ";$wingetLinks"
-}
-
 [Environment]::SetEnvironmentVariable("Path", $systemPath, "Machine")
 
-# --- create launcher script content ---
+# --- create launcher content ---
 $launcher = @'
 # Auto launcher for YouTube Downloader
 
