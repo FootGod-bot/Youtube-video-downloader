@@ -2,6 +2,13 @@
 # YouTube Downloader Installer
 # ------------------------------
 
+# --- check for admin ---
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole] "Administrator")) {
+    Write-Warning "You must run this installer as Administrator. Restarting with admin privileges..."
+    Start-Process powershell "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    exit
+}
+
 $installPath = "C:\Program Files\YouTube-Downloader"
 $startupPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup"
 
@@ -23,7 +30,6 @@ $repoFiles = @(
     "downloader.py",
     "config.json"
 )
-
 foreach ($f in $repoFiles) {
     if (Test-Path $f) {
         Copy-Item $f $installPath -Force
@@ -37,7 +43,6 @@ $extFiles = @(
     "icon48.png",
     "icon128.png"
 )
-
 foreach ($f in $extFiles) {
     if (Test-Path $f) {
         Copy-Item $f $extPath -Force
@@ -54,21 +59,18 @@ winget install --id DenoLand.Deno --silent
 Write-Host "Installing yt-dlp..."
 winget install --id yt-dlp.yt-dlp --silent
 
-# --- update PATH ---
-$paths = @(
-    $installPath,
-    "C:\Program Files\FFmpeg\bin",
-    "C:\Program Files\Deno\bin"
-)
+# --- update SYSTEM PATH ---
+$systemPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+$wingetLinks = "$env:USERPROFILE\WinGet\Links"
 
-foreach ($p in $paths) {
-    if (Test-Path $p) {
-        # Append only if not already in PATH
-        if ($env:PATH -notlike "*$p*") {
-            setx PATH "$($env:PATH);$p" > $null
-        }
-    }
+if ($systemPath -notlike "*$installPath*") {
+    $systemPath += ";$installPath"
 }
+if ($systemPath -notlike "*$wingetLinks*") {
+    $systemPath += ";$wingetLinks"
+}
+
+[Environment]::SetEnvironmentVariable("Path", $systemPath, "Machine")
 
 # --- create launcher script content ---
 $launcher = @'
