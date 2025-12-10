@@ -61,7 +61,7 @@ winget install --id yt-dlp.yt-dlp --silent
 
 # --- update SYSTEM PATH ---
 $systemPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
-$wingetLinks = "$env:USERPROFILE\WinGet\Links"
+$wingetLinks = "$env:LocalAppData\Microsoft\WinGet\Links"
 
 if ($systemPath -notlike "*$installPath*") {
     $systemPath += ";$installPath"
