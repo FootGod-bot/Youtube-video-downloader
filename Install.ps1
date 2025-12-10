@@ -19,6 +19,19 @@ foreach ($p in @($installPath, $extPath)) {
     if (!(Test-Path $p)) { New-Item -ItemType Directory -Path $p | Out-Null }
 }
 
+# --- function to download GitHub files ---
+function Download-GitHubFile {
+    param(
+        [string]$url,
+        [string]$dest
+    )
+    $wc = New-Object System.Net.WebClient
+    $wc.Headers.Add("user-agent","PowerShell")
+    Write-Host "Downloading $dest..."
+    $wc.DownloadFile($url, $dest)
+    $wc.Dispose()
+}
+
 # --- GitHub raw file URLs ---
 $repoFiles = @{
     "ytlinkserver.py" = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/ytlinkserver.py"
@@ -36,18 +49,14 @@ $extFiles = @{
 
 # --- download backend files ---
 foreach ($f in $repoFiles.Keys) {
-    $url = $repoFiles[$f]
     $dest = Join-Path $installPath $f
-    Write-Host "Downloading $f..."
-    Invoke-WebRequest -Uri $url -OutFile $dest
+    Download-GitHubFile $repoFiles[$f] $dest
 }
 
 # --- download extension files ---
 foreach ($f in $extFiles.Keys) {
-    $url = $extFiles[$f]
     $dest = Join-Path $extPath $f
-    Write-Host "Downloading $f..."
-    Invoke-WebRequest -Uri $url -OutFile $dest
+    Download-GitHubFile $extFiles[$f] $dest
 }
 
 # --- install deps via winget ---
