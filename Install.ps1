@@ -36,7 +36,7 @@ function Download-GitHubFile {
 $repoFiles = @{
     "ytlinkserver.py" = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/ytlinkserver.py"
     "formatter.py"    = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/formatter.py"
-    "downloader.py"   = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/downloader.py"
+    "downloader.py"   = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/Downloader.py"
     "config.json"     = "https://raw.githubusercontent.com/FootGod-bot/Youtube-video-downloader/main/files/config.json"
 }
 
